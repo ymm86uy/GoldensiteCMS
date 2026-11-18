@@ -3,7 +3,9 @@ namespace App\Controllers\Admin;
 use App\Core\{AdminPath, Auth, ConsoleView, Database, DeployManager, IdentityAccess, OwnerAccess, OwnerUpdatePublication, ProductEdition, RateLimiter, RequestGuard};
 final class DeployController
 {
-    public function index(): void { Auth::requireAdmin(); $db=Database::getInstance(); $status=null;
+    public function index(): void {
+        if (ProductEdition::current()!=='owner') { http_response_code(404); return; }
+        Auth::requireAdmin(); $db=Database::getInstance(); $status=null;
         if ($_SERVER['REQUEST_METHOD']==='POST') { RequestGuard::post(); try { $action=ConsoleView::field($_POST,'action',20); $id=(int)($_POST['release_id']??0);
             if ($action==='publish-update') { $this->publishUpdate(); return; }
             if ($action==='retire-update') { $this->retireUpdate(); return; }

@@ -90,7 +90,11 @@ $router->get('/admin/typography', [\App\Controllers\Admin\TypographyController::
 $router->post('/admin/typography', [\App\Controllers\Admin\TypographyController::class, 'index']);
 $router->post('/admin/users/manage', [\App\Controllers\Admin\UsersController::class, 'save']);
 $router->post('/language', static function(): void { \App\Core\RequestGuard::post(); $lang=$_POST['language']??''; if (!is_string($lang)||!in_array($lang,['es','en','pt'],true)) { http_response_code(422); exit('Idioma inválido.'); } setcookie('goldensite_language',$lang,['expires'=>time()+31536000,'path'=>'/','secure'=>(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off'),'httponly'=>true,'samesite'=>'Lax']); $back=$_POST['return_to']??'/'; if (!is_string($back)||!\App\Core\PublicRuntime::internal($back)) $back='/'; header('Location: '.$back); });
-foreach (['deploy-manager'=>\App\Controllers\Admin\DeployController::class,'identity-access'=>\App\Controllers\Admin\IdentityController::class,'form-builder'=>\App\Controllers\Admin\FormBuilderController::class] as $path=>$controller) { $router->get('/admin/'.$path,[$controller,'index']); $router->post('/admin/'.$path,[$controller,'index']); }
+if (\App\Core\ProductEdition::current()==='owner') {
+    $router->get('/admin/deploy-manager',[\App\Controllers\Admin\DeployController::class,'index']);
+    $router->post('/admin/deploy-manager',[\App\Controllers\Admin\DeployController::class,'index']);
+}
+foreach (['identity-access'=>\App\Controllers\Admin\IdentityController::class,'form-builder'=>\App\Controllers\Admin\FormBuilderController::class] as $path=>$controller) { $router->get('/admin/'.$path,[$controller,'index']); $router->post('/admin/'.$path,[$controller,'index']); }
 $router->get('/forms/{slug}',[\App\Controllers\FormController::class,'show']);
 $router->post('/forms/{slug}',[\App\Controllers\FormController::class,'show']);
 $router->get('/login/enterprise',[\App\Controllers\EnterpriseLoginController::class,'login']);

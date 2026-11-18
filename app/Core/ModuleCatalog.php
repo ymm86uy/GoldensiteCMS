@@ -118,6 +118,10 @@ final class ModuleCatalog
     {
         $modules=self::definitions();
         foreach ($modules as $id=>&$module) {
+            if ($id==='deploy-manager' && ProductEdition::current()!=='owner') {
+                unset($modules[$id]);
+                continue;
+            }
             $policy=ModuleCommerce::offer($id);
             if (!in_array($id,['weather-time','forum','social-network','security-audit'],true) && isset($policy['tier'])) $module['is_pro']=$policy['tier']==='pro';
             $module['name']=preg_replace('/\s+PRO$/','',$module['name']).(self::requiresLicenseHere($module)?' PRO':'');

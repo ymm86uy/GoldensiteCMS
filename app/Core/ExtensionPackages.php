@@ -7,7 +7,7 @@ final class ExtensionPackages
     public const PREFIX='NFXP1';
     public const MAX_BYTES=2097152;
     public const MAX_ITEMS=32;
-    private const CHANNEL='https://goldensitecms.com/extension-catalog/';
+    public const CHANNEL='https://goldensitecms.com/extension-catalog/';
     private const SETTING='extension_packages_v1';
     private const FILES=['module.json','main.php','admin.php','schema.json'];
     public const ASSETS=['style.css'=>'text/css; charset=utf-8','script.js'=>'text/javascript; charset=utf-8'];
@@ -308,6 +308,7 @@ final class ExtensionPackages
     {
         $body='';
         $curl=curl_init(self::CHANNEL.$path);
+        SafeHttp::useSystemTrust($curl);
         curl_setopt_array($curl,[CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_FOLLOWLOCATION=>false,
             CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>12,
             CURLOPT_WRITEFUNCTION=>static function ($handle,string $part) use (&$body,$limit): int {

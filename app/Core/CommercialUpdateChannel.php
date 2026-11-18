@@ -15,6 +15,7 @@ final class CommercialUpdateChannel
         $from = ReleaseUpdate::version();
         $body = '';
         $curl = curl_init(self::BASE.$from.'.nfx');
+        SafeHttp::useSystemTrust($curl);
         try {
             curl_setopt_array($curl, [
                 CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,

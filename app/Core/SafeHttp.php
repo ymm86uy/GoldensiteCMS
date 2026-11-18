@@ -2,11 +2,19 @@
 namespace App\Core;
 final class SafeHttp
 {
+    public static function useSystemTrust(\CurlHandle $curl): void
+    {
+        if (PHP_OS_FAMILY==='Windows' && defined('CURLSSLOPT_NATIVE_CA')) {
+            curl_setopt($curl,CURLOPT_SSL_OPTIONS,CURLSSLOPT_NATIVE_CA);
+        }
+    }
+
     public static function publicResponseHeaders(string $url): array
     {
         [$host,$ip]=self::publicTarget($url,'El dominio configurado requiere una dirección pública.','No se pudo resolver el dominio configurado.');
         $response=[]; $bytes=0; $discarded=false;
         $curl=curl_init($url);
+        self::useSystemTrust($curl);
         curl_setopt_array($curl,[CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_FOLLOWLOCATION=>false,
             CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_PROXY=>'',CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>6,
             CURLOPT_RESOLVE=>[$host.':443:'.(str_contains($ip,':')?'['.$ip.']':$ip)],
@@ -33,6 +41,7 @@ final class SafeHttp
 
         $body='';
         $curl=curl_init($url);
+        self::useSystemTrust($curl);
         curl_setopt_array($curl,[
             CURLOPT_HTTPHEADER=>$headers, CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,
             CURLOPT_FOLLOWLOCATION=>false, CURLOPT_SSL_VERIFYPEER=>true, CURLOPT_SSL_VERIFYHOST=>2,
@@ -77,7 +86,7 @@ final class SafeHttp
         try { $parts=EnterpriseOidc::url($url); } catch (\InvalidArgumentException $e) { return $failure; }
         $host=$parts['host']; $addresses=[]; foreach (dns_get_record($host,DNS_A|DNS_AAAA)?:[] as $record) { $ip=$record['ip']??$record['ipv6']??null; if (!$ip) continue; if (!self::isPublicIp($ip)) return $failure; $addresses[]=$ip; } if (!$addresses||strlen($json)>65536) return $failure;
         foreach ($headers as $header) if (!is_string($header)||preg_match('/[\r\n]/',$header)) return $failure;
-        $body=''; $retry=null; $ip=$addresses[0]; $curl=curl_init($url); $headers[]='Content-Type: application/json';
+        $body=''; $retry=null; $ip=$addresses[0]; $curl=curl_init($url); self::useSystemTrust($curl); $headers[]='Content-Type: application/json';
         curl_setopt_array($curl,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$json,CURLOPT_HTTPHEADER=>$headers,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>8,CURLOPT_PROXY=>'',CURLOPT_RESOLVE=>[$host.':443:'.(str_contains($ip,':')?'['.$ip.']':$ip)],CURLOPT_WRITEFUNCTION=>static function($ch,$chunk) use (&$body) { if (strlen($body)+strlen($chunk)>65536) return 0; $body.=$chunk; return strlen($chunk); },CURLOPT_HEADERFUNCTION=>static function($ch,$line) use (&$retry) { if (preg_match('/^Retry-After:\s*(\d{1,5})/i',$line,$m)) $retry=min(3600,(int)$m[1]); return strlen($line); }]);
         try { $ok=curl_exec($curl); return ['status'=>$ok?(int)curl_getinfo($curl,CURLINFO_HTTP_CODE):0,'body'=>$ok?$body:'','retry_after'=>$retry,'duration_ms'=>(int)round(curl_getinfo($curl,CURLINFO_TOTAL_TIME)*1000)]; } finally { curl_close($curl); }
     }

@@ -10,8 +10,9 @@ $nxNavigation = [
     'Operaciones' => [['/admin/dashboard','Visión general'],['/admin/messages','Bandeja de entrada'],['/admin/activity-log','Registro de actividad']],
     'Publicación' => [['/admin/pages','Páginas'],['/admin/posts','Artículos'],['/admin/menus','Navegación'],['/admin/ai-builder','Estudio de composición']],
     'Experiencia' => [['/admin/themes','Identidad visual'],['/admin/themes/customize','Personalizar estilo'],['/admin/typography','Tipografía e idiomas'],['/admin/accessibility','Accesibilidad'],['/admin/plugins','Módulos y extensiones'],['/admin/form-builder','Goldensite Form Builder']],
-    'Infraestructura' => [['/admin/waf','WAF y análisis de archivos'],['/admin/settings','Configuración'],['/admin/identity-access','Goldensite Identity & Access'],['/admin/deploy-manager','Goldensite Deploy Manager']]
+    'Infraestructura' => [['/admin/waf','WAF y análisis de archivos'],['/admin/settings','Configuración'],['/admin/identity-access','Goldensite Identity & Access']]
 ];
+if (ProductEdition::current()==='owner') $nxNavigation['Infraestructura'][]=['/admin/deploy-manager','Goldensite Deploy Manager'];
 if (ProductEdition::current() === 'owner' && OwnerAccess::eligible()) $nxNavigation['Infraestructura'][] = ['/admin/owner','Owner · licencias'];
 if (\App\Core\IdentityAccess::superuser() && \App\Core\FrontendEngine::isModuleActive('security-audit')) {
     $nxNavigation['Infraestructura'][]=['/admin/security-audit','Auditoría de seguridad'];

@@ -63,7 +63,8 @@ class Router
 
         $parsedUrl = parse_url($uri, PHP_URL_PATH);
         $parsedUrl = AdminPath::normalize((string)$parsedUrl);
-        if (ProductEdition::current()==='commercial' && ($parsedUrl==='/admin/owner' || str_starts_with($parsedUrl,'/admin/owner/'))) {
+        if (ProductEdition::current()==='commercial' && ($parsedUrl==='/admin/owner' || str_starts_with($parsedUrl,'/admin/owner/')
+            || $parsedUrl==='/admin/deploy-manager' || str_starts_with($parsedUrl,'/admin/deploy-manager/'))) {
             http_response_code(404);
             return;
         }

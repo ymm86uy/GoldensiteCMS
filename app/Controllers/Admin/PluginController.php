@@ -20,6 +20,8 @@ class PluginController
         $ownerUnlocked=$ownerEdition && OwnerAccess::unlocked();
         $catalogUrl=AdminPath::url('/admin/plugins');
         $extensionOffers=[];
+        $coreOffer=null;
+        $coreChannelMessage='';
         $customPrices = \App\Core\ModuleCatalog::prices();
         try {
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -57,6 +59,14 @@ class PluginController
         if (!$ownerEdition && $fullAdmin && ($_GET['channel']??'')==='official') {
             try { $extensionOffers=ExtensionPackages::offers(); }
             catch (\Throwable $error) { $errorMsg='El canal oficial de extensiones no está disponible o no pudo verificarse.'; }
+        }
+        if (!$ownerEdition && $fullAdmin && ($_GET['channel']??'')==='updates') {
+            try {
+                $coreOffer=\App\Core\CommercialUpdateChannel::check();
+                if ($coreOffer===null) $coreChannelMessage='No hay un paquete publicado para la versión instalada '.ReleaseUpdate::version().'.';
+            } catch (\Throwable $error) {
+                $coreChannelMessage='No se pudo comprobar el canal de actualizaciones del CMS. Revisa la conexión HTTPS del servidor.';
+            }
         }
         $installedExtensions=ExtensionPackages::installed();
         $coreVersion=ReleaseUpdate::version();

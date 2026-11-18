@@ -15,6 +15,16 @@
                 <a class="nx-btn" href="<?= $e(\App\Core\AdminPath::url('/admin/owner')) ?>">Desbloquear Owner</a>
             <?php endif ?>
         <?php else: ?>
+            <section class="nx-form-field nx-stack" aria-labelledby="official-core-updates">
+                <h3 id="official-core-updates">Actualizaciones del CMS</h3>
+                <p>Versión instalada <?= $e($coreVersion) ?>. Consulta los parches firmados para esta instalación.</p>
+                <p><a href="<?= $e(\App\Core\CommercialUpdateChannel::BASE) ?>" target="_blank" rel="noopener">Canal oficial <?= $e(\App\Core\CommercialUpdateChannel::BASE) ?></a></p>
+                <div class="nx-actions"><a class="nx-btn" href="<?= $e($catalogUrl) ?>?channel=updates#official-core-updates">Buscar actualizaciones del CMS</a><a class="nx-btn" href="<?= $e(\App\Core\AdminPath::url('/admin/backups')) ?>">Abrir Release &amp; Backup</a></div>
+                <?php if ($coreChannelMessage!==''): ?><p class="nx-note" role="status"><?= $e($coreChannelMessage) ?></p><?php endif ?>
+                <?php if ($coreOffer!==null): ?><p role="status">Disponible <?= $e($coreOffer['version']) ?>. <a href="<?= $e($coreOffer['url']) ?>">Descargar ZIP firmado</a></p><p class="nx-note">Verifica e instala el paquete desde Release &amp; Backup.</p><?php endif ?>
+            </section>
+            <h3>Extensiones y módulos</h3>
+            <p><a href="<?= $e(\App\Core\ExtensionPackages::CHANNEL) ?>index.json" target="_blank" rel="noopener">Catálogo oficial <?= $e(\App\Core\ExtensionPackages::CHANNEL) ?></a></p>
             <div class="nx-actions"><a class="nx-btn" href="<?= $e($catalogUrl) ?>?channel=official#official-extensions">Buscar extensiones oficiales</a></div>
             <?php if (($_GET['channel']??'')==='official' && !$extensionOffers && $errorMsg===''): ?>
                 <p class="nx-note">El canal aún no tiene extensiones publicadas.</p>
