@@ -7,7 +7,6 @@ use App\Core\UploadGuard;
 final class Audio
 {
     private const FORMATS=['audio/mpeg'=>'mp3','audio/ogg'=>'ogg','audio/wav'=>'wav','audio/x-wav'=>'wav'];
-    private static function directory(): string { return dirname(__DIR__,2).'/storage/social'; }
 
     public static function store(): array
     {
@@ -18,16 +17,9 @@ final class Audio
             throw new \InvalidArgumentException('El audio admite hasta 8 MB.');
         $mime=(new \finfo(FILEINFO_MIME_TYPE))->file($temp);
         if (!isset(self::FORMATS[$mime])) throw new \InvalidArgumentException('Usa MP3, Ogg o WAV.');
-        $dir=self::directory();
-        if (is_link($dir) || (!is_dir($dir) && !mkdir($dir,0700) && !is_dir($dir))) throw new \RuntimeException('Almacén no disponible.');
         $key=bin2hex(random_bytes(16));
-        if (!UploadGuard::move($temp,$dir.'/'.$key)) throw new \InvalidArgumentException('No se pudo guardar el audio.');
+        if (!UploadGuard::move($temp,Store::newMediaPath($key))) throw new \InvalidArgumentException('No se pudo guardar el audio.');
         return [$key,$mime];
-    }
-
-    public static function remove(?string $key): void
-    {
-        if ($key && preg_match('/^[a-f0-9]{32}$/D',$key) && is_file(self::directory().'/'.$key)) unlink(self::directory().'/'.$key);
     }
 
     public function stream(string $id): void
@@ -38,8 +30,7 @@ final class Audio
         catch (\OutOfBoundsException $error) { Access::json(['error'=>$error->getMessage()],404); return; }
         $key=$echo['audio_key'];
         $mime=$echo['audio_mime'];
-        if (!$key || !preg_match('/^[a-f0-9]{32}$/D',$key) || !isset(self::FORMATS[$mime]) || is_link(self::directory())
-            || !is_file($path=self::directory().'/'.$key) || is_link($path)) { Access::json(['error'=>'Audio no disponible.'],404); return; }
+        if (!$key || !isset(self::FORMATS[$mime]) || ($path=Store::mediaPath($key))===null) { Access::json(['error'=>'Audio no disponible.'],404); return; }
         header('Content-Type: '.$mime);
         header('Content-Disposition: inline; filename="eco.'.self::FORMATS[$mime].'"');
         header("Content-Security-Policy: default-src 'none'; sandbox");

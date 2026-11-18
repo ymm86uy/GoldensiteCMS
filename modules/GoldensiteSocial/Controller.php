@@ -12,6 +12,8 @@ final class Controller
         if (!Auth::check()) { header('Location: /login?return_to=%2Fsocial'); return; }
         header('X-Frame-Options: DENY');
         header('Cache-Control: no-store, private');
+        header('Referrer-Policy: same-origin');
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=(self)');
         header("Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'; media-src 'self'; connect-src 'self'");
         $siteTitle='GoldensiteCMS Social Network';
         $csrf=Csrf::generate();
@@ -26,17 +28,18 @@ final class Controller
 
     public function feed(): void
     {
-        if (!Access::enter()) return;
+        $viewer=Access::enter();
+        if (!$viewer) return;
         $before=filter_var($_GET['before']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);
         if ($before===false) { Access::json(['error'=>'Cursor inválido.'],422); return; }
-        Access::json(Store::feed($before));
+        Access::json(Store::feed($before,$viewer));
     }
 
     public function map(): void
     {
         if (!Access::enter()) return;
         Access::json(['regions'=>Store::db()->fetchAll('SELECT region,COUNT(*) count FROM goldensite_social_presence
-            WHERE expires_at>UTC_TIMESTAMP() GROUP BY region HAVING COUNT(*)>=3 ORDER BY region')]);
+            WHERE expires_at>UTC_TIMESTAMP() GROUP BY region HAVING COUNT(*)>=3 ORDER BY region'),'echoes'=>Store::map()]);
     }
 
     public function presence(): void
@@ -59,14 +62,46 @@ final class Controller
         $this->mutate(static function () use ($user): array {
             $title=Access::field('title',100);
             $body=Access::field('body',2000);
-            $region=Access::field('region',2,false);
-            $region=$region===''?null:Access::region($region);
-            [$key,$mime]=Audio::store();
+            [$region,$row,$col]=Location::fromPublication();
+            $alt=Access::field('image_alt',160,false);
+            $key=$image=null;
             try {
-                Store::db()->execute('INSERT INTO goldensite_social_echoes (user_id,title,body,region,audio_mime,audio_key) VALUES (?,?,?,?,?,?)',[$user,$title,$body,$region,$mime,$key]);
-            } catch (\Throwable $error) { Audio::remove($key); throw $error; }
+                [$key,$mime]=Audio::store();
+                $image=Image::store();
+                Store::db()->execute('INSERT INTO goldensite_social_echoes (user_id,title,body,region,zone_row,zone_col,audio_mime,audio_key,image_key,image_alt)
+                    VALUES (?,?,?,?,?,?,?,?,?,?)',[$user,$title,$body,$region,$row,$col,$mime,$key,$image,$image===null?null:$alt]);
+            } catch (\Throwable $error) {
+                Store::removeMedia($key);
+                Store::removeMedia($image);
+                throw $error;
+            }
             return ['id'=>(int)Store::db()->getConnection()->lastInsertId()];
         },201);
+    }
+
+    public function reduceLocation(string $id): void
+    {
+        $user=Access::enter(true,false,false);
+        if (!$user) return;
+        $this->mutate(static function () use ($id,$user): array {
+            $id=self::id($id);
+            $mode=Access::field('location_mode',7);
+            if (!in_array($mode,['country','none'],true)) throw new \InvalidArgumentException('Elige la privacidad del eco.');
+            $statement=Store::db()->getConnection()->prepare('UPDATE goldensite_social_echoes SET
+                region=IF(?=1,NULL,region),zone_row=NULL,zone_col=NULL
+                WHERE id=? AND user_id=? AND hidden_at IS NULL');
+            $statement->execute([(int)($mode==='none'),$id,$user]);
+            if (!$statement->rowCount() && !Store::db()->fetch('SELECT id FROM goldensite_social_echoes
+                WHERE id=? AND user_id=? AND hidden_at IS NULL',[$id,$user])) throw new \OutOfBoundsException('Eco no disponible.');
+            return ['saved'=>true];
+        });
+    }
+
+    public function echoDetail(string $id): void
+    {
+        $viewer=Access::enter();
+        if (!$viewer) return;
+        $this->mutate(static fn(): array => ['echo'=>Store::detail(self::id($id),$viewer)]);
     }
 
     public function waves(string $id): void

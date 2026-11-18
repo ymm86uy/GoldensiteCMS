@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GoldensiteCMS Social Network
-  version: 0.1.0
+  version: 0.2.0
   description: API de miembros. Usa la sesión del CMS y CSRF en escrituras. Las rutas devuelven 404 cuando el módulo está desactivado. El middleware puede rechazar peticiones antes de llegar a la API.
 security:
   - cmsSession: []
@@ -31,7 +31,12 @@ paths:
                 title: {type: string, maxLength: 100}
                 body: {type: string, maxLength: 2000}
                 region: {type: string, maxLength: 2}
+                location_mode: {type: string, enum: [none, country, approximate]}
+                zone_row: {type: integer, minimum: 0, maximum: 1999}
+                zone_col: {type: integer, minimum: 0, maximum: 3999, description: Máximo efectivo dependiente de la fila}
                 audio: {type: string, format: binary}
+                image: {type: string, format: binary}
+                image_alt: {type: string, maxLength: 160}
       responses:
         '201': {description: Eco publicado, con su ID}
         default: {$ref: '#/components/responses/Rejected'}
@@ -39,7 +44,7 @@ paths:
     get:
       operationId: readFrequencies
       responses:
-        '200': {description: Regiones agregadas con tres o más miembros}
+        '200': {description: Presencia agregada por país y hasta 60 ecos visibles con país y punto aproximado opcional}
         default: {$ref: '#/components/responses/Rejected'}
   /api/social/presence:
     post:
@@ -99,6 +104,45 @@ paths:
                 seconds: {type: integer, minimum: 5, maximum: 120}
       responses:
         '200': {description: Participación procesada}
+        default: {$ref: '#/components/responses/Rejected'}
+  /api/social/echoes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/EchoId'
+    get:
+      operationId: readEcho
+      responses:
+        '200': {description: Detalle de un eco visible}
+        default: {$ref: '#/components/responses/Rejected'}
+  /api/social/echoes/{id}/location:
+    parameters:
+      - $ref: '#/components/parameters/EchoId'
+    post:
+      operationId: reduceEchoLocation
+      parameters:
+        - $ref: '#/components/parameters/Csrf'
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [location_mode]
+              properties:
+                location_mode: {type: string, enum: [none, country]}
+      responses:
+        '200': {description: Ubicación reducida por el autor}
+        default: {$ref: '#/components/responses/Rejected'}
+  /api/social/echoes/{id}/image:
+    parameters:
+      - $ref: '#/components/parameters/EchoId'
+    get:
+      operationId: readEchoImage
+      responses:
+        '200':
+          description: Imagen normalizada
+          content:
+            image/webp:
+              schema: {type: string, format: binary}
         default: {$ref: '#/components/responses/Rejected'}
   /api/social/echoes/{id}/audio:
     parameters:

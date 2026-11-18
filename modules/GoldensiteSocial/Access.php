@@ -13,7 +13,7 @@ final class Access
         echo json_encode($data,JSON_THROW_ON_ERROR|JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
-    public static function enter(bool $write=false,bool $admin=false): ?int
+    public static function enter(bool $write=false,bool $admin=false,bool $requirePublisher=true): ?int
     {
         header('Cache-Control: no-store, private');
         header('X-Frame-Options: DENY');
@@ -22,7 +22,7 @@ final class Access
         if (!FrontendEngine::isModuleActive('social-network')) { self::json(['error'=>'Módulo desactivado.'],404); return null; }
         $id=Auth::id();
         if (!$id) { self::json(['error'=>'Inicia sesión para entrar.'],401); return null; }
-        if (($admin && !IdentityAccess::allows('social.moderate')) || (!$admin && $write && Settings::get('social_writers','members')==='roles'
+        if (($admin && !IdentityAccess::allows('social.moderate')) || (!$admin && $write && $requirePublisher && Settings::get('social_writers','members')==='roles'
             && !IdentityAccess::allows('social.publish') && !IdentityAccess::allows('social.moderate'))) {
             self::json(['error'=>'Tu rol no autoriza esta acción.'],403); return null;
         }
