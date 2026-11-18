@@ -1,0 +1,26 @@
+.gs-geo { margin-bottom:24px; overflow:hidden; }
+.gs-geo-head { gap:12px; align-items:flex-start; flex-wrap:wrap; }
+.gs-geo-head p { margin:.35rem 0 0; color:var(--nx-admin-muted,var(--nx-muted)); font-size:.8rem; }
+.gs-geo-body { display:grid; grid-template-columns:minmax(0,3fr) minmax(235px,1fr); }
+.gs-geo-map { position:relative; align-content:center; min-height:190px; background:#101923; }
+.gs-geo-map canvas { display:block; width:100%; height:auto; aspect-ratio:900 / 365; }
+.gs-geo-map canvas[data-interactive] { cursor:pointer; }
+.gs-geo-empty { position:absolute; inset:auto 1rem 1rem; color:#dbe3ed; margin:0; text-align:center; pointer-events:none; font-size:.8rem; }
+.gs-geo-summary { padding:1.1rem; border-left:1px solid var(--nx-admin-border,var(--nx-line)); }
+.gs-geo-summary h3 { margin:.9rem 0 .4rem; font-size:.9rem; }
+.gs-geo-counts { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; }
+.gs-geo-counts div { display:grid; gap:.2rem; padding:.65rem; border:1px solid var(--nx-admin-border,var(--nx-line)); border-radius:8px; }
+.gs-geo-counts strong { font-size:1.4rem; line-height:1.1; font-variant-numeric:tabular-nums; }
+.gs-geo-counts span { font-size:.72rem; }
+.gs-geo-summary ul { margin:.5rem 0; padding:0; list-style:none; max-height:12rem; overflow:auto; }
+.gs-geo-summary li button { display:flex; justify-content:space-between; width:100%; gap:.6rem; text-align:left; background:transparent; color:inherit; border:1px solid transparent; padding:.4rem .5rem; font-size:.8rem; }
+.gs-geo-summary li button:hover,.gs-geo-summary li button[aria-pressed=true] { border-color:var(--nx-admin-accent,var(--nx-accent)); }
+.gs-geo-summary li button:focus-visible { outline:2px solid currentColor; outline-offset:-2px; }
+.gs-geo-summary a { text-decoration:underline; }
+.gs-geo-events { border-top:1px solid var(--nx-admin-border,var(--nx-line)); }
+.gs-geo-events h3 { font-size:.9rem; margin:0; }
+.gs-geo-events td:nth-child(4) { white-space:normal; overflow-wrap:anywhere; }
+@media (max-width:800px) {
+    .gs-geo-body { grid-template-columns:1fr; }
+    .gs-geo-summary { border-left:0; border-top:1px solid var(--nx-admin-border,var(--nx-line)); }
+}

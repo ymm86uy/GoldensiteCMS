@@ -1,0 +1,30 @@
+# Replace example.com, the project path and the PHP-FPM socket for your VPS.
+# Configure TLS for the domain before using the public installer.
+server {
+    listen 80;
+    server_name example.com;
+    root /var/www/goldensite/public;
+    index index.php;
+    client_max_body_size 24m;
+    autoindex off;
+
+    location ~ (^|/)\. { deny all; }
+    location ^~ /cache/ { deny all; }
+    location ~* ^/uploads/.*\.(php[0-9]*|phtml|phar|html?|svg|js)(\.|$) { return 404; }
+    location /uploads/ {
+        try_files $uri =404;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Content-Security-Policy "default-src 'none'; sandbox" always;
+    }
+    location ~* \.(bak|sql|ini|env|log|lock)$ { deny all; }
+    location ~ ^/(index|install|restore)\.php$|^/api/save_page\.php$ {
+        try_files $uri =404;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param HTTPS $https if_not_empty;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+    }
+    location ~* \.php(?:/|$) { return 404; }
+    location /updates/commercial/ { try_files $uri =404; }
+    location / { try_files $uri $uri/ /index.php?$query_string; }
+}

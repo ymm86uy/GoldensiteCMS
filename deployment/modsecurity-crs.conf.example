@@ -1,0 +1,19 @@
+# Example for Apache with ModSecurity and the distribution's maintained CRS.
+# Paths depend on the Linux distribution; verify them before enabling.
+# Include AFTER modsecurity.conf and BEFORE the CRS rules.
+# Install the engine and CRS packages separately; Goldensite does not bundle them.
+SecRuleEngine DetectionOnly
+SecRequestBodyAccess On
+SecResponseBodyAccess Off
+SecRequestBodyLimit 25165824
+SecRequestBodyNoFilesLimit 2097152
+SecRequestBodyLimitAction Reject
+# Avoid storing passwords, cookies and request bodies in audit records.
+SecAuditEngine RelevantOnly
+SecAuditLogParts AHZ
+SecAuditLog /var/log/modsecurity/goldensite-audit.log
+Include /etc/modsecurity/crs/crs-setup.conf
+Include /usr/share/modsecurity-crs/rules/*.conf
+# Tune narrowly for the editor with authenticated test traffic, then change
+# SecRuleEngine to On. Nginx requires its compatible ModSecurity connector;
+# these Apache directives cannot simply be pasted into nginx.conf.

@@ -1,0 +1,136 @@
+openapi: 3.1.0
+info:
+  title: GoldensiteCMS Social Network
+  version: 0.1.0
+  description: API de miembros. Usa la sesión del CMS y CSRF en escrituras. Las rutas devuelven 404 cuando el módulo está desactivado. El middleware puede rechazar peticiones antes de llegar a la API.
+security:
+  - cmsSession: []
+paths:
+  /api/social/echoes:
+    get:
+      operationId: listEchoes
+      parameters:
+        - name: before
+          in: query
+          schema: {type: integer, minimum: 0}
+      responses:
+        '200': {description: Hasta 15 ecos visibles y cursor before}
+        default: {$ref: '#/components/responses/Rejected'}
+    post:
+      operationId: createEcho
+      parameters:
+        - $ref: '#/components/parameters/Csrf'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title: {type: string, maxLength: 100}
+                body: {type: string, maxLength: 2000}
+                region: {type: string, maxLength: 2}
+                audio: {type: string, format: binary}
+      responses:
+        '201': {description: Eco publicado, con su ID}
+        default: {$ref: '#/components/responses/Rejected'}
+  /api/social/frequencies:
+    get:
+      operationId: readFrequencies
+      responses:
+        '200': {description: Regiones agregadas con tres o más miembros}
+        default: {$ref: '#/components/responses/Rejected'}
+  /api/social/presence:
+    post:
+      operationId: changePresence
+      parameters:
+        - $ref: '#/components/parameters/Csrf'
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                region: {type: string, maxLength: 2, description: Vacío retira la presencia}
+      responses:
+        '200': {description: Preferencia guardada}
+        default: {$ref: '#/components/responses/Rejected'}
+  /api/social/echoes/{id}/waves:
+    parameters:
+      - $ref: '#/components/parameters/EchoId'
+    get:
+      operationId: listWaves
+      responses:
+        '200': {description: Hasta 30 ondas visibles}
+        default: {$ref: '#/components/responses/Rejected'}
+    post:
+      operationId: createWave
+      parameters:
+        - $ref: '#/components/parameters/Csrf'
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: {type: string, maxLength: 500}
+      responses:
+        '200': {description: Onda guardada}
+        default: {$ref: '#/components/responses/Rejected'}
+  /api/social/echoes/{id}/resonance:
+    parameters:
+      - $ref: '#/components/parameters/EchoId'
+    post:
+      operationId: recordResonance
+      parameters:
+        - $ref: '#/components/parameters/Csrf'
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [seconds]
+              properties:
+                seconds: {type: integer, minimum: 5, maximum: 120}
+      responses:
+        '200': {description: Participación procesada}
+        default: {$ref: '#/components/responses/Rejected'}
+  /api/social/echoes/{id}/audio:
+    parameters:
+      - $ref: '#/components/parameters/EchoId'
+    get:
+      operationId: readEchoAudio
+      responses:
+        '200':
+          description: Audio validado
+          content:
+            audio/*:
+              schema: {type: string, format: binary}
+        default: {$ref: '#/components/responses/Rejected'}
+components:
+  securitySchemes:
+    cmsSession:
+      type: apiKey
+      in: cookie
+      name: PHPSESSID
+      description: Cookie de sesión. Usa el nombre configurado por GoldenSiteCMS.
+  parameters:
+    Csrf:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema: {type: string}
+      description: También se acepta csrf_token en el formulario.
+    EchoId:
+      name: id
+      in: path
+      required: true
+      schema: {type: integer, minimum: 1}
+  responses:
+    Rejected:
+      description: Solicitud inválida, sesión ausente, permisos insuficientes, recurso ausente o límite alcanzado.

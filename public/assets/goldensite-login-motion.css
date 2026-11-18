@@ -1,0 +1,126 @@
+.gs-motion {
+    --ink: #f6f4ee;
+    --muted: #a5abb8;
+    --canvas: #0d1017;
+    --surface: #141821;
+    --edge: #323849;
+    min-height: 100svh;
+    background: radial-gradient(ellipse at 22% 0%, color-mix(in srgb, var(--accent) 14%, var(--canvas)), var(--canvas) 62%);
+    color: var(--ink);
+    font-family: "Inter", "Segoe UI", sans-serif;
+}
+.gs-motion--owner_atlas {
+    --canvas: #11110f;
+    --surface: #181813;
+    --edge: #403b2d;
+    --muted: #bcb4a3;
+}
+.gs-login {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    width: min(100%, 70rem);
+    min-height: 34rem;
+    overflow: hidden;
+    border: 1px solid var(--edge);
+    border-radius: 1.75rem;
+    background: var(--surface);
+    box-shadow: 0 32px 90px #0007;
+}
+.gs-login-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    isolation: isolate;
+    background: linear-gradient(145deg, #11182345, #0c1119d9), var(--bg-img) center / cover,
+        radial-gradient(ellipse at 42% 62%, color-mix(in srgb, var(--accent) 24%, #121623), #10141c 75%);
+}
+.gs-login-stage::before {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background: repeating-linear-gradient(90deg,#b9c8e012 0 1px,transparent 1px 42px),
+        repeating-linear-gradient(0deg,#b9c8e012 0 1px,transparent 1px 42px);
+    mask-image: radial-gradient(ellipse, #000 24%, transparent 82%);
+}
+.gs-login-art { display:grid; place-items:center; width:min(78%, 27rem); aspect-ratio:1; perspective:850px; }
+.gs-login-shape, .gs-login-mark { grid-area:1/1; }
+.gs-login-mark { z-index:2; border-radius:17%; box-shadow:0 16px 40px #0007; }
+.gs-login-shape { width:70%; height:70%; border:1px solid color-mix(in srgb,var(--accent) 48%,#19202b); }
+.gs-motion--kinetic_gallery .gs-login-shape {
+    --slide: 0%;
+    --turn: 0deg;
+    width:42%;
+    height:73%;
+    border-radius:1.35rem;
+    background: linear-gradient(145deg,color-mix(in srgb,var(--accent) 44%,#18213b),#161d2d 62%);
+    box-shadow:0 18px 45px #080c16a8;
+    transform:translateX(var(--slide)) rotateY(var(--turn));
+    animation:gs-login-panels 1s cubic-bezier(.19,.8,.3,1) both;
+}
+.gs-motion--kinetic_gallery .gs-login-shape:first-child { --slide:-68%; --turn:28deg; animation-delay:.1s; }
+.gs-motion--kinetic_gallery .gs-login-shape:nth-child(2) { --slide:68%; --turn:-28deg; animation-delay:.2s; }
+.gs-motion--orbital_glass .gs-login-shape {
+    border-radius:50%;
+    background:radial-gradient(circle at 34% 20%,#ecf7ff39,transparent 55%), linear-gradient(130deg,#bde8ff27,#354a6d22);
+    box-shadow:inset 0 0 36px #98d9ff22,0 23px 52px #04081599;
+    transform:rotateY(-16deg) rotateX(9deg);
+    animation:gs-login-orbit 1.6s cubic-bezier(.22,.61,.3,1) both;
+}
+.gs-motion--orbital_glass .gs-login-shape:first-child { width:84%;height:84%;background:none;transform:rotateY(26deg) rotateZ(-23deg);animation:none; }
+.gs-motion--orbital_glass .gs-login-shape:nth-child(2) { width:92%;height:92%;background:none;opacity:.5;transform:rotateX(26deg);animation:none; }
+.gs-motion--aurora_mesh .gs-login-shape {
+    --angle: -24deg;
+    width:76%;
+    height:56%;
+    border-radius:49% 51% 64% 36% / 55% 38% 62% 45%;
+    background:linear-gradient(120deg,#b967d875,color-mix(in srgb,var(--accent) 47%,#2c3c73),#75e9ce6b);
+    box-shadow:0 20px 48px #0007;
+    transform:rotate(var(--angle));
+    animation:gs-login-bloom 1.5s cubic-bezier(.22,.61,.3,1) both;
+}
+.gs-motion--aurora_mesh .gs-login-shape:nth-child(2) { --angle:27deg; width:70%; opacity:.65; animation-delay:.1s; }
+.gs-motion--aurora_mesh .gs-login-shape:nth-child(3) { --angle:84deg; width:62%; opacity:.62; animation-delay:.2s; }
+.gs-motion--owner_atlas .gs-login-stage {
+    background:linear-gradient(145deg,#261d1342,#120f0bdb),var(--bg-img) center / cover,
+        radial-gradient(ellipse at 42% 62%,#5c4929,#161610 72%);
+}
+.gs-motion--owner_atlas .gs-login-shape {
+    --extent: 73%;
+    --raise: 0px;
+    width:var(--extent);
+    height:var(--extent);
+    border-radius:16%;
+    background:linear-gradient(145deg,#d5a4503b,#29211520);
+    box-shadow:inset 0 0 28px #e8be7422, 0 14px 32px #0c080859;
+    transform:rotateX(54deg) rotateZ(-35deg) translateY(var(--raise));
+    animation:gs-login-atlas 1.45s cubic-bezier(.22,.61,.3,1) both;
+}
+.gs-motion--owner_atlas .gs-login-shape:first-child { --extent:89%; --raise:66px; }
+.gs-motion--owner_atlas .gs-login-shape:nth-child(2) { --extent:80%; --raise:32px; animation-delay:.14s; }
+.gs-motion--owner_atlas .gs-login-shape:nth-child(3) { animation-delay:.28s; }
+.gs-login-panel { align-self:center; padding:clamp(1.4rem,5vw,4rem); min-width:0; }
+.gs-login-panel header { margin-bottom:2rem; overflow-wrap:anywhere; }
+.gs-login-brand { color:var(--accent); font-size:.875rem; font-weight:700; letter-spacing:.065em; }
+.gs-login-panel h1 { margin:.55rem 0 .65rem; font-size:clamp(1.95rem,4.1vw,3.4rem); line-height:1.03; letter-spacing:-.06em; }
+.gs-login-caption { color:var(--muted); line-height:1.55; }
+.gs-login-logo { display:block; max-width:min(100%, 10rem); max-height:3rem; margin-bottom:.8rem; }
+.gs-login-panel .input-group label { text-transform:none; letter-spacing:0; font-size:.9rem; }
+.gs-login-panel .input-group input { min-height:48px; border-color:var(--edge); background:var(--canvas); font:inherit; }
+.gs-login-panel .btn-submit { display:flex; align-items:center; justify-content:space-between; min-height:48px; padding-inline:1.1rem; }
+.gs-login-panel :is(input,button,a):focus-visible { outline:2px solid var(--ink); outline-offset:4px; }
+.gs-login-panel fieldset:disabled button { cursor:default; }
+.gs-login-saml { display:inline-block; color:var(--ink); margin-top:1.25rem; text-underline-offset:.2em; }
+@keyframes gs-login-panels { from { opacity:0;transform:translateX(0) translateY(12%) rotateY(34deg); } }
+@keyframes gs-login-orbit { from { opacity:0;transform:rotateY(-95deg) rotateX(9deg); } }
+@keyframes gs-login-bloom { from { opacity:0;transform:rotate(0) scale(.55); } }
+@keyframes gs-login-atlas { from { opacity:0;transform:rotateX(54deg) rotateZ(-45deg) translateY(84px); } }
+@media (max-width: 760px) {
+    body.gs-motion { padding:1rem; }
+    .gs-login { grid-template-columns:1fr; min-height:auto; max-width:34rem; }
+    .gs-login-stage { height:clamp(9rem,33vw,13rem); }
+    .gs-login-art { width:clamp(10rem,40vw,15rem); }
+    .gs-login-mark { width:2.4rem;height:2.4rem; }
+    .gs-login-panel header { margin-bottom:1.4rem; }
+}
+@media (prefers-reduced-motion: reduce) { .gs-login-shape { animation:none !important; } }

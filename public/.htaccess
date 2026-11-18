@@ -1,0 +1,11 @@
+Options -Indexes -MultiViews
+Require all granted
+DirectoryIndex index.php
+<FilesMatch "(?i)(^\.|\.(bak|sql|ini|env|log|lock)$)">
+    Require all denied
+</FilesMatch>
+RewriteEngine On
+RewriteRule ^updates/commercial/ - [END]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]

@@ -1,0 +1,1 @@
+<section class="nx-panel"><div class="nx-panel-body nx-stack"><h1>Revisa esta operación.</h1><p role="alert"><?= $e($message) ?></p><a href="/admin/dashboard" class="nx-btn">Volver al panel</a></div></section>

@@ -1,0 +1,20 @@
+# Replace example.com, paths and the PHP-FPM socket for your VPS.
+# Add the HTTPS virtual host/certificate before using the public installer.
+<VirtualHost *:80>
+    ServerName example.com
+    DocumentRoot /var/www/goldensite/public
+    <Directory /var/www/goldensite>
+        Require all denied
+        AllowOverride None
+    </Directory>
+    <Directory /var/www/goldensite/public>
+        Require all granted
+        AllowOverride All
+        Options -Indexes +FollowSymLinks
+    </Directory>
+    <FilesMatch "\.php$">
+        SetHandler "proxy:unix:/run/php/php8.4-fpm.sock|fcgi://localhost/"
+    </FilesMatch>
+    ErrorLog ${APACHE_LOG_DIR}/goldensite-error.log
+    CustomLog ${APACHE_LOG_DIR}/goldensite-access.log combined
+</VirtualHost>

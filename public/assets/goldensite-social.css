@@ -1,0 +1,9 @@
+.gs-social{color:#f2efff;background:#14122b;border:1px solid #463b6f;border-radius:1.35rem;padding:clamp(1rem,4vw,2.6rem);display:grid;gap:1.1rem;max-width:75rem;margin:auto}
+.gs-social .gs-social-hero{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;padding:clamp(1rem,4vw,2.8rem);border-radius:1rem;background:radial-gradient(ellipse at 90% 5%,#50458e,transparent 65%),linear-gradient(120deg,#272046,#141735)}
+.gs-social-hero p,.gs-social-author{color:#d2c9f0}.gs-social-grid,.gs-social-feed{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));gap:1rem}
+.gs-social-panel,.gs-social-echo{padding:1rem;border:1px solid #463b6f;border-radius:1rem;background:#1d1937;min-width:0;overflow-wrap:anywhere}
+.gs-social-echo>p{white-space:pre-wrap}.gs-social-orb{width:4.5rem;aspect-ratio:1;border-radius:50%;margin-block-end:.65rem;background:radial-gradient(circle at 35% 27%,#f3faff,#a387fb 18%,#493080 47%,#25204b 62%,#6bdce6);box-shadow:0 0 1.5rem #9b79ed60}
+.gs-social canvas{display:block;width:100%;height:auto;background:#16142e;border-radius:.7rem;margin-block:.65rem}.gs-social form,.gs-social label{display:grid;gap:.4rem}.gs-social form{margin-block:.6rem}
+.gs-social input,.gs-social select,.gs-social textarea,.gs-social button,.gs-social-hero a{padding:.6rem .75rem;border:1px solid #9b83d1;border-radius:.55rem;background:#15132c;color:#fff;min-width:0}
+.gs-social button,.gs-social-hero a{cursor:pointer;width:fit-content}.gs-social button:disabled{opacity:.6;cursor:default}.gs-social :focus-visible{outline:2px solid #adf6ff;outline-offset:3px}.gs-social-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-block:.5rem}
+.gs-social audio{max-width:100%}.gs-social details{margin-block:.65rem}.gs-social [data-social-status]:empty{display:none}

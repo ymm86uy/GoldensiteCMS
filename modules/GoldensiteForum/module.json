@@ -1,0 +1,9 @@
+{
+  "id": "forum",
+  "name": "Goldensite Forum",
+  "editions": ["owner", "commercial"],
+  "tier": "free",
+  "public_url": "/forum",
+  "admin_url": "/admin/forum",
+  "migration": "Migrations/install.sql"
+}
