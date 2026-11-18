@@ -40,7 +40,7 @@ jobs:
         run: |
           git archive --format=zip --output="$RUNNER_TEMP/commercial.zip" HEAD
           zip -q -d "$RUNNER_TEMP/commercial.zip" storage/
-          zip -q -r -D "$RUNNER_TEMP/commercial.zip" vendor
+          zip -q -r -D "$RUNNER_TEMP/commercial.zip" vendor -x 'vendor/*/tests/*' 'vendor/*/test/*' 'vendor/*/examples/*' 'vendor/*/example/*' 'vendor/*/README*' 'vendor/*/CHANGELOG*'
       - name: Comprobar instalación y restricciones de edición
         env:
           DB_HOST: 127.0.0.1
@@ -51,4 +51,5 @@ jobs:
           GOLDENSITE_TEST_EDITION_CHANNEL: '1'
           GOLDENSITE_INSTALL_TEST_PORT: '18084'
         run: php tests/install.php "$RUNNER_TEMP/commercial.zip"
+
 
