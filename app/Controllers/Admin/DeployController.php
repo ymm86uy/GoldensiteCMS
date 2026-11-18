@@ -8,6 +8,7 @@ final class DeployController
         Auth::requireAdmin(); $db=Database::getInstance(); $status=null;
         if ($_SERVER['REQUEST_METHOD']==='POST') { RequestGuard::post(); try { $action=ConsoleView::field($_POST,'action',20); $id=(int)($_POST['release_id']??0);
             if ($action==='publish-update') { $this->publishUpdate(); return; }
+            if ($action==='verify-update') { $this->verifyUpdate(); return; }
             if ($action==='retire-update') { $this->retireUpdate(); return; }
             if ($action==='stage') { $label=ConsoleView::field($_POST,'label',120); if ($label==='') throw new \InvalidArgumentException('Escribe un nombre para la versión.'); $id=DeployManager::stage($label); }
             elseif ($action==='edit') DeployManager::edit($id,$_POST,ConsoleView::field($_POST,'checksum',64));
@@ -27,6 +28,23 @@ final class DeployController
         $updateMessage = $_SESSION['deploy_update_message'] ?? null;
         unset($_SESSION['deploy_update_message']);
         ConsoleView::render('deploy',compact('releases','selected','snapshot','status','showUpdatePublication','canPublishUpdate','updateMessage','commercialReleases','selectedCommercial'),'Goldensite Deploy Manager');
+    }
+
+    private function verifyUpdate(): void
+    {
+        if (ProductEdition::current()!=='owner' || !IdentityAccess::superuser()) { http_response_code(403); return; }
+        OwnerAccess::requireUnlocked();
+        if (!RateLimiter::consume('commercial-verify:'.Auth::id(),5,300)) throw new \InvalidArgumentException('Espera antes de repetir la comprobación.');
+        ConsoleView::password();
+        $from=ConsoleView::field($_POST,'commercial_from',20);
+        try {
+            $result=OwnerUpdatePublication::verifyPublic($from,ConsoleView::field($_POST,'notice_fingerprint',64));
+        } catch (\RuntimeException $error) {
+            throw new \InvalidArgumentException($error->getMessage());
+        }
+        $_SESSION['deploy_update_message']='Canal verificado de '.$result['from'].' a '.$result['version'].'. Aviso firmado y ZIP público comprobados ('.$result['bytes'].' bytes).';
+        ConsoleView::audit('deploy_commercial_update_verified',$from.' → '.$result['version']);
+        header('Location: '.AdminPath::url('/admin/deploy-manager').'?commercial='.rawurlencode($from).'#deploy-versions',true,303);
     }
 
     private function retireUpdate(): void

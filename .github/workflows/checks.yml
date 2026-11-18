@@ -1,0 +1,52 @@
+name: Comprobaciones de Comercial
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      database:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci-only-password
+          MARIADB_DATABASE: goldensite_test_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, mbstring, fileinfo, curl, gd, zip, openssl, dom
+          coverage: none
+          tools: composer:v2
+      - run: composer validate --strict --no-check-publish
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: composer audit --locked --no-interaction
+      - run: php tools/verify-source.php
+      - run: php tests/run.php
+      - name: Preparar instalación de prueba
+        run: |
+          git archive --format=zip --output="$RUNNER_TEMP/commercial.zip" HEAD
+          zip -q -r "$RUNNER_TEMP/commercial.zip" vendor
+      - name: Comprobar instalación y restricciones de edición
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASS: ci-only-password
+          GOLDENSITE_TEST_DB: goldensite_test_ci
+          GOLDENSITE_TEST_EDITION_CHANNEL: '1'
+          GOLDENSITE_INSTALL_TEST_PORT: '18084'
+        run: php tests/install.php "$RUNNER_TEMP/commercial.zip"

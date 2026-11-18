@@ -12,7 +12,12 @@ final class CommercialUpdateChannel
         if (ProductEdition::current() !== 'commercial') {
             throw new \LogicException('Este canal solo distribuye actualizaciones comerciales.');
         }
-        $from = ReleaseUpdate::version();
+        return self::forVersion(ReleaseUpdate::version());
+    }
+
+    public static function forVersion(string $from): ?array
+    {
+        if (!self::validVersion($from)) throw new \InvalidArgumentException('Versión comercial inválida.');
         $body = '';
         $curl = curl_init(self::BASE.$from.'.nfx');
         SafeHttp::useSystemTrust($curl);
