@@ -6,6 +6,29 @@ use App\Core\{Auth,ConsoleView,ExtensionPackages,FrontendEngine,ProductEdition};
 
 final class ExtensionController
 {
+    public function catalog(): void
+    {
+        if (ProductEdition::current()!=='owner') { http_response_code(404); return; }
+        $offers=[];
+        foreach (ExtensionPackages::installed() as $item) {
+            if (($item['published']??false)!==true) continue;
+            try {
+                $offer=ExtensionPackages::claim($item['code']);
+                if (!hash_equals($item['sha256'],$offer['sha256'])) continue;
+                $offers[]=$offer;
+            } catch (\InvalidArgumentException|\JsonException) {
+                continue;
+            }
+        }
+        header('Cache-Control: private, no-store');
+        $siteTitle='Extensiones oficiales · GoldenSiteCMS';
+        $e=ConsoleView::escape(...);
+        ob_start();
+        require dirname(__DIR__,2).'/views/frontend/extension_catalog.php';
+        $content=ob_get_clean();
+        require dirname(__DIR__,2).'/views/layouts/main.php';
+    }
+
     public function feed(): void
     {
         if (ProductEdition::current()!=='owner') { http_response_code(404); return; }

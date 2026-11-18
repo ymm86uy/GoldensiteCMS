@@ -70,6 +70,8 @@ $router->get('/admin/menus', [\App\Controllers\Admin\NavigationController::class
 $router->post('/admin/menus', [\App\Controllers\Admin\NavigationController::class, 'index']);
 $router->get('/admin/plugins', [PluginController::class, 'index']);
 $router->post('/admin/plugins', [PluginController::class, 'index']);
+$router->get('/extension-catalog',[\App\Controllers\ExtensionController::class,'catalog']);
+$router->get('/extension-catalog/',[\App\Controllers\ExtensionController::class,'catalog']);
 $router->get('/extension-catalog/index.json',[\App\Controllers\ExtensionController::class,'feed']);
 $router->get('/extension-catalog/package/{hash}',[\App\Controllers\ExtensionController::class,'package']);
 $router->get('/extensions/{id}/assets/{name}',[\App\Controllers\ExtensionController::class,'asset']);

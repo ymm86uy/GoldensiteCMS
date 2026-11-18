@@ -1,6 +1,7 @@
 <section class="nx-panel" id="official-extensions" style="margin-bottom:24px">
     <div class="nx-panel-head"><h2>Canal oficial de extensiones</h2></div>
     <div class="nx-panel-body nx-stack">
+        <p><a href="<?= $e(\App\Core\ExtensionPackages::CHANNEL) ?>" target="_blank" rel="noopener">Abrir catálogo oficial <?= $e(\App\Core\ExtensionPackages::CHANNEL) ?></a></p>
         <?php if ($ownerEdition): ?>
             <p>Instala y publica un paquete firmado para que esté disponible en GoldenSiteCMS Comercial.</p>
             <?php if ($ownerUnlocked): ?>
