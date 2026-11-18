@@ -60,7 +60,7 @@ try {
     $legacyEntries = [];
     for ($entry = 0; $entry < $reviewZip->numFiles; $entry++) {
         $name = $reviewZip->getNameIndex($entry);
-        if (preg_match('~(?:^\.env$|^storage/(?!\.htaccess$).+|license-private\.pem|initial-access\.json|recovery-credentials\.json)~', $name)) $privateLeak = true;
+        if (preg_match('~(?:^\.env$|^storage/(?!\.htaccess$).+|license-private\.pem|initial-access\.json|recovery-credentials\.json)~', $name)) { $privateLeak = true; fwrite(STDERR, "Ruta privada en el paquete: ".$name.PHP_EOL); }
         $contents = $reviewZip->getFromIndex($entry);
         if (stripos($name, App\Core\LegacyFormat::PREFIX) !== false
             || (is_string($contents) && stripos($contents, App\Core\LegacyFormat::PREFIX) !== false)) $legacyEntries[] = $name;
@@ -369,3 +369,4 @@ PHP);
     checkInstall(!preg_match('/PHP (?:Warning|Fatal error)|PDOException|Deprecated:/', file_get_contents($log)), 'Hay errores o avisos en el registro de la instalación de prueba: ' . $log);
     echo "OK: $checks comprobaciones de instalación nueva desde el ZIP, permisos y acceso administrador.\n";
 } finally { proc_terminate($server); proc_close($server); }
+
