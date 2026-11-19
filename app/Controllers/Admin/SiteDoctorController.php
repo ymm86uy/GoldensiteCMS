@@ -16,6 +16,7 @@ final class SiteDoctorController {
    if ((int)$db->getConnection()->query('SELECT ROW_COUNT()')->fetchColumn()!==1) throw new \InvalidArgumentException('La tarea cambió de estado. Recarga para revisarla.');
    ConsoleView::audit('module_job_'.$action,$id.' / '.$job['state'].' / intentos anteriores: '.$job['attempts']); header('Location: /admin/site-health'); return;
   } catch (\InvalidArgumentException $e) { http_response_code(422); $notice=$e->getMessage(); } }
+  $hosting=\App\Core\HostingDiagnostics::report(dirname(__DIR__,3),$_SERVER);
   $databaseOk=(int)$db->getConnection()->query('SELECT 1')->fetchColumn()===1;
   $root=dirname(__DIR__,3); $checks=[['name'=>'Base de datos','ok'=>$databaseOk,'detail'=>'Consulta PDO de comprobación.'],['name'=>'Almacenamiento privado','ok'=>is_writable($root.'/storage'),'detail'=>'Permisos locales de escritura.'],['name'=>'Medios públicos','ok'=>is_writable($root.'/public/uploads'),'detail'=>'Permisos de la biblioteca de medios.'],['name'=>'HTTPS en esta petición','ok'=>(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off'),'detail'=>'HTTP local genera una advertencia; en producción configura TLS en el servidor.']];
   foreach (['pdo_mysql','mbstring','openssl','curl','zip','dom','gd'] as $extension) $checks[]=['name'=>'PHP · '.$extension,'ok'=>extension_loaded($extension),'detail'=>'Disponibilidad local de la extensión.'];
@@ -27,11 +28,12 @@ final class SiteDoctorController {
   $maintenanceSeen=(int)Settings::get('maintenance_worker_seen','0');
   $checks[]=['name'=>'Trabajador de mantenimiento','ok'=>$maintenanceSeen>0 && time()-$maintenanceSeen<86400,
       'detail'=>$maintenanceSeen>0?'Última ejecución completada · '.gmdate('Y-m-d H:i',$maintenanceSeen).' UTC':'Pendiente de la primera ejecución de tools/maintenance.php.'];
-  if (($_GET['export']??'')==='json') { header('Content-Type: application/json; charset=utf-8'); header('Content-Disposition: attachment; filename="goldensite-diagnostics.json"'); echo json_encode(['generated_at'=>gmdate('c'),'php'=>PHP_VERSION,'checks'=>$checks,'modules'=>$modules,'jobs'=>$jobs,'last_backup'=>$backup,'last_recovery_drill'=>$recovery],JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR); return; }
+  if (($_GET['export']??'')==='json') { header('Content-Type: application/json; charset=utf-8'); header('Content-Disposition: attachment; filename="goldensite-diagnostics.json"'); echo json_encode(['generated_at'=>gmdate('c'),'php'=>PHP_VERSION,'checks'=>$checks,'modules'=>$modules,'jobs'=>$jobs,'last_backup'=>$backup,'last_recovery_drill'=>$recovery,'hosting'=>$hosting],JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR); return; }
   $smtpConfigured=Settings::get('smtp_host')!=='' && filter_var(Settings::get('admin_email'),FILTER_VALIDATE_EMAIL)
       && (Settings::get('smtp_user')==='' || Settings::get('smtp_pass')!=='');
   $workerSeen=(int)Settings::get('module_worker_seen');
-  ConsoleView::render('module_health',['checks'=>$checks,'modules'=>$modules,'jobs'=>$jobs,'notice'=>$notice,'smtpConfigured'=>$smtpConfigured,'workerSeen'=>$workerSeen,'backup'=>$backup,'recovery'=>$recovery,'recentJobs'=>$db->fetchAll('SELECT id,module_id,kind,state,attempts FROM goldensite_module_jobs ORDER BY created_at DESC,id DESC LIMIT 30')],'Goldensite Site Health & Doctor');
+  ConsoleView::render('module_health',['hosting'=>$hosting,'checks'=>$checks,'modules'=>$modules,'jobs'=>$jobs,'notice'=>$notice,'smtpConfigured'=>$smtpConfigured,'workerSeen'=>$workerSeen,'backup'=>$backup,'recovery'=>$recovery,'recentJobs'=>$db->fetchAll('SELECT id,module_id,kind,state,attempts FROM goldensite_module_jobs ORDER BY created_at DESC,id DESC LIMIT 30')],'Goldensite Site Health & Doctor');
  }
 }
+
 

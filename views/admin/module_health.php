@@ -1,5 +1,18 @@
 <div class="nx-page-head"><div><div class="nx-kicker">GOLDENSITE / SALUD DEL SITIO</div><h1>Comprueba antes de publicar.</h1><p>Requisitos observados, alcance real de cada módulo y estado de tareas. Activar un módulo no demuestra que un proveedor externo esté funcionando.</p></div><a class="nx-btn" href="?export=json">Exportar diagnóstico</a></div>
 <?php if ($notice): ?><div class="nx-alert" role="alert"><?= $e($notice) ?></div><?php endif ?>
+<section class="nx-panel" id="capas-alojamiento" aria-labelledby="capas-alojamiento-titulo">
+    <div class="nx-panel-head"><h2 id="capas-alojamiento-titulo">Capas del alojamiento</h2><span class="nx-note"><?= $e($hosting['checked_at']) ?></span></div>
+    <div class="nx-panel-body nx-stack">
+        <p class="nx-note">Cada estado describe la observación indicada. Los controles locales y la protección del proveedor se comprueban por separado. Esta consulta no cambia la configuración.</p>
+        <?php foreach ($hosting['checks'] as $layer): ?>
+        <article class="nx-form-field" data-hosting-check="<?= $e($layer['id']) ?>">
+            <div class="nx-check"><strong><?= $e($layer['name']) ?></strong><span class="nx-pill <?= $layer['state']==='checked'?'good':'warn' ?>"><?= $e(['checked'=>'Comprobado','warning'=>'Revisar','unknown'=>'Sin comprobar'][$layer['state']]) ?></span></div>
+            <p><?= $e($layer['detail']) ?></p><p class="nx-note"><?= $e($layer['fix']) ?></p>
+        </article>
+        <?php endforeach ?>
+        <a class="nx-btn small" href="<?= $e(\App\Core\AdminPath::url('/admin/waf')) ?>">Abrir centro de seguridad</a>
+    </div>
+</section>
 <section class="nx-panel"><div class="nx-panel-head"><h2>Respaldo y recuperación</h2></div><div class="nx-panel-body nx-stack">
     <p><strong>Último respaldo local</strong><br><?= $backup?$e(date('Y-m-d H:i T',$backup['time']).' · '.$backup['file']):'Sin respaldo local disponible.' ?></p>
     <p><strong>Última restauración comprobada</strong><br><?= $recovery?$e(date('Y-m-d H:i T',$recovery['time']).' · '.$recovery['backup']):'Todavía no hay un ensayo aislado registrado.' ?></p>

@@ -160,6 +160,7 @@ try {
     if (getenv('GOLDENSITE_TEST_ACCESS_RECOVERY')==='1') {
         require __DIR__.'/edition-channel.php';
         require __DIR__.'/access-recovery.php';
+        require __DIR__.'/hosting-diagnostics.php';
         return;
     }
     if (getenv('GOLDENSITE_TEST_EDITION_CHANNEL')==='1') {

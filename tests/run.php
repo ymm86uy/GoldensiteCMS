@@ -61,6 +61,13 @@ try { SafeArchive::apply($archive, $directory . '/extract'); verify(false, 'ZIP 
 session_write_close();
 
 $database = getenv('GOLDENSITE_TEST_DB');
+$now=1763553600;
+$fresh='ClamAV 1.4.3/12345/'.gmdate('D M j H:i:s Y',$now-3600);
+verify(App\Core\HostingDiagnostics::signatureAge($fresh,$now)['state']==='checked','Fecha declarada reciente de firmas');
+verify(App\Core\HostingDiagnostics::signatureAge('ClamAV 1.4.3/12345/'.gmdate('D M j H:i:s Y',$now-96*3600),$now)['state']==='warning','Firmas declaradas antiguas requieren revisión');
+verify(App\Core\HostingDiagnostics::signatureAge(null,$now)['state']==='unknown','Ausencia de antivirus no equivale a comprobación');
+verify(App\Core\HostingDiagnostics::signatureAge('ClamAV 1.4.3/12345/Fri Feb 31 00:00:00 2026',$now)['state']==='unknown','Fecha imposible de firmas rechazada');
+verify(App\Core\HostingDiagnostics::signatureAge('ClamAV 1.4.3/12345/'.gmdate('D M j H:i:s Y',$now+172800),$now)['state']==='unknown','Fecha adelantada de firmas rechazada');
 if (!$database) {
     echo "OK: $checks comprobaciones. Integración omitida: configura GOLDENSITE_TEST_DB con una base dedicada.\n";
     exit;
