@@ -3,6 +3,13 @@ namespace App\Core;
 final class IdentityAccess
 {
     private static array $cache=[];
+    public static function requiresMfa(): bool
+    {
+        if (!Auth::check()) return false;
+        return self::superuser()
+            ? Settings::get('admin_require_mfa','0')==='1'
+            : !empty(self::role()['require_mfa']);
+    }
     public static function permissions(): array { return ['dashboard.read','users.read','users.manage','pages.read','pages.write','pages.review','pages.publish','posts.read','posts.write','posts.review','posts.publish','menus.read','menus.write','messages.read','messages.write','activity.read','activity.export','appearance.read','appearance.write','builder.read','builder.write','modules.read','modules.write','settings.read','settings.write','security.read','security.write','forms.read','forms.write','deploy.read','deploy.write','identity.manage','forum.moderate','forum.participate','social.publish','social.moderate']; }
     public static function superuser(?array $user=null): bool { $user??=Auth::user(); return $user && (($user['role']??'')==='admin'||(int)($user['role_id']??0)===1); }
     public static function role(?int $id=null): ?array { $id??=(int)Auth::id(); if (!array_key_exists($id,self::$cache)) self::$cache[$id]=Database::getInstance()->fetch('SELECT r.* FROM goldensite_access_roles r JOIN goldensite_access_members m ON m.role_id=r.id WHERE m.user_id=?',[$id])?:null; return self::$cache[$id]; }

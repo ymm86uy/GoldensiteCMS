@@ -22,6 +22,8 @@ final class SiteDoctorController {
   $checks[]=['name'=>'Versión de PHP','ok'=>(PHP_VERSION_ID>=80427&&PHP_VERSION_ID<80500)||(PHP_VERSION_ID>=80512&&PHP_VERSION_ID<80600),'detail'=>'Versión observada: '.PHP_VERSION];
   $modules=ModuleCapabilities::report(); $jobs=$db->fetchAll('SELECT module_id,state,COUNT(*) count FROM goldensite_module_jobs GROUP BY module_id,state');
   $backup=\App\Core\RecoveryReport::latestBackup(); $recovery=\App\Core\RecoveryReport::verified();
+  $coverage=\App\Core\RecoveryReport::coverage($backup,$recovery);
+  $checks[]=['name'=>'Recuperación del último respaldo','ok'=>$coverage['ok'],'detail'=>$coverage['detail']];
   $maintenanceSeen=(int)Settings::get('maintenance_worker_seen','0');
   $checks[]=['name'=>'Trabajador de mantenimiento','ok'=>$maintenanceSeen>0 && time()-$maintenanceSeen<86400,
       'detail'=>$maintenanceSeen>0?'Última ejecución completada · '.gmdate('Y-m-d H:i',$maintenanceSeen).' UTC':'Pendiente de la primera ejecución de tools/maintenance.php.'];
@@ -32,3 +34,4 @@ final class SiteDoctorController {
   ConsoleView::render('module_health',['checks'=>$checks,'modules'=>$modules,'jobs'=>$jobs,'notice'=>$notice,'smtpConfigured'=>$smtpConfigured,'workerSeen'=>$workerSeen,'backup'=>$backup,'recovery'=>$recovery,'recentJobs'=>$db->fetchAll('SELECT id,module_id,kind,state,attempts FROM goldensite_module_jobs ORDER BY created_at DESC,id DESC LIMIT 30')],'Goldensite Site Health & Doctor');
  }
 }
+

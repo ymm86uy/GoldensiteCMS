@@ -7,7 +7,13 @@ final class IdentityController
         Auth::requireAdmin(); $db=Database::getInstance(); $status=null;
         if ($_SERVER['REQUEST_METHOD']==='POST') { RequestGuard::post(); try {
             ConsoleView::password(); $action=ConsoleView::field($_POST,'action',20);
-            if ($action==='role') {
+            if ($action==='mfa-policy') {
+                if (!IdentityAccess::superuser()) { http_response_code(403); return; }
+                $enabled=($_POST['admin_require_mfa']??'')==='1';
+                $account=$db->fetch('SELECT totp_secret FROM users WHERE id=?',[Auth::id()]);
+                if (empty($account['totp_secret']) || empty($_SESSION['mfa_verified'])) throw new \InvalidArgumentException('Configura y verifica tu segundo factor antes de cambiar esta política.');
+                Settings::set('admin_require_mfa',$enabled?'1':'0');
+            } elseif ($action==='role') {
                 $name=ConsoleView::field($_POST,'name',80); $permissions=$_POST['permissions']??[]; $networks=preg_split('/\s+/',ConsoleView::field($_POST,'networks',2000),-1,PREG_SPLIT_NO_EMPTY);
                 if ($name===''||!is_array($permissions)||!array_is_list($permissions)||!$permissions||array_diff($permissions,IdentityAccess::permissions())) throw new \InvalidArgumentException('Selecciona un nombre y permisos válidos.');
                 foreach ($permissions as $permission) if (!IdentityAccess::allows($permission)) throw new \InvalidArgumentException('No puedes delegar permisos que no posees.');

@@ -157,6 +157,11 @@ try {
         else $db->prepare("UPDATE goldensite_module_offers SET tier=? WHERE module_id='release-backup'")->execute([$previousTier]);
         installRequest('/logout',['csrf_token'=>$token]);
     }
+    if (getenv('GOLDENSITE_TEST_ACCESS_RECOVERY')==='1') {
+        require __DIR__.'/edition-channel.php';
+        require __DIR__.'/access-recovery.php';
+        return;
+    }
     if (getenv('GOLDENSITE_TEST_EDITION_CHANNEL')==='1') {
         require __DIR__.'/edition-channel.php';
         return;

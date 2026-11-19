@@ -48,8 +48,9 @@ jobs:
           DB_USER: root
           DB_PASS: ci-only-password
           GOLDENSITE_TEST_DB: goldensite_test_ci
-          GOLDENSITE_TEST_EDITION_CHANNEL: '1'
+          GOLDENSITE_TEST_ACCESS_RECOVERY: '1'
           GOLDENSITE_INSTALL_TEST_PORT: '18084'
         run: php tests/install.php "$RUNNER_TEMP/commercial.zip"
+
 
 

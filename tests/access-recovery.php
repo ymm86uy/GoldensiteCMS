@@ -1,0 +1,53 @@
+<?php
+// Runs only against the disposable installation created by tests/install.php.
+function enrollFixtureMfa(string $password): array {
+    $page=installRequest('/account/security');
+    checkInstall(installRequest('/account/security',['csrf_token'=>installCsrf($page),'action'=>'start','current_password'=>$password])['status']===302,'No se inicia el autenticador.');
+    $page=installRequest('/account/security');
+    checkInstall(preg_match('/data-totp-secret>([A-Z2-7]+)</',$page['body'],$secret)===1,'Falta la configuración del autenticador.');
+    $bits=''; foreach (str_split($secret[1]) as $char) $bits.=str_pad(decbin(strpos('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',$char)),5,'0',STR_PAD_LEFT);
+    $binary=''; for ($i=0;$i+8<=strlen($bits);$i+=8) $binary.=chr(bindec(substr($bits,$i,8)));
+    $counter=intdiv(time(),30); $digest=hash_hmac('sha1',pack('N2',0,$counter),$binary,true); $offset=ord($digest[19])&15;
+    $code=str_pad((string)((unpack('N',substr($digest,$offset,4))[1]&0x7fffffff)%1000000),6,'0',STR_PAD_LEFT);
+    checkInstall(installRequest('/account/security',['csrf_token'=>installCsrf($page),'action'=>'confirm','current_password'=>$password,'totp_code'=>$code])['status']===302,'No se confirma el autenticador.');
+    $page=installRequest('/account/security'); preg_match_all('/\b[A-F0-9]{16}\b/',$page['body'],$codes);
+    checkInstall(count($codes[0])===8,'Faltan los códigos de recuperación.');
+    return $codes[0];
+}
+$page=installRequest('/admin/identity-access');
+$policy=['action'=>'mfa-policy','current_password'=>$password,'admin_require_mfa'=>'1'];
+checkInstall(installRequest('/admin/identity-access',$policy)['status']===403,'Se aceptó cambiar la política sin CSRF.');
+checkInstall(installRequest('/admin/identity-access',$policy+['csrf_token'=>installCsrf($page)])['status']===422,'Se activó la política sin configurar el autenticador.');
+$codes=enrollFixtureMfa($password);
+$page=installRequest('/admin/identity-access');
+checkInstall(installRequest('/admin/identity-access',$policy+['csrf_token'=>installCsrf($page)])['status']===302,'No se activó la política con segundo factor verificado.');
+$page=installRequest('/account/security');
+checkInstall(installRequest('/account/security',['csrf_token'=>installCsrf($page),'action'=>'disable','current_password'=>$password,'totp_code'=>'000000'])['status']===422,'Se pudo desactivar un factor obligatorio.');
+$primaryCookie=$cookie; $cookie=$fixture.'/storage/second-admin.cookie';
+$db->prepare("INSERT INTO users (username,email,password,role,role_id,status) VALUES ('second_admin','second@example.test',?,'admin',1,'active')")->execute([password_hash($password,PASSWORD_BCRYPT)]);
+installRequest('/login',['csrf_token'=>installCsrf(installRequest('/login')),'email'=>'second@example.test','password'=>$password]);
+$blocked=installRequest('/admin/dashboard');
+checkInstall($blocked['status']===302 && str_contains($blocked['headers'],'/account/security'),'Un administrador sin factor accede al panel.');
+$blocked=installRequest('/admin/settings',['action'=>'save','maintenance_mode'=>'1']);
+checkInstall($blocked['status']===302 && str_contains($blocked['headers'],'/account/security'),'La política no protege operaciones POST.');
+checkInstall(installRequest('/account/security')['status']===200,'No se permite configurar el factor obligatorio.');
+$cookie=$primaryCookie;
+installRequest('/logout',['csrf_token'=>installCsrf(installRequest('/account/security'))]);
+installRequest('/login',['csrf_token'=>installCsrf(installRequest('/login')),'email'=>'owner@example.test','password'=>$password]);
+$challenge=installRequest('/login/2fa');
+checkInstall(installRequest('/login/2fa',['csrf_token'=>installCsrf($challenge),'totp_code'=>$codes[0]])['status']===302 && installRequest('/admin/dashboard')['status']===200,'La recuperación no satisface la política MFA.');
+installRequest('/logout',['csrf_token'=>installCsrf(installRequest('/account/security'))]);
+installRequest('/login',['csrf_token'=>installCsrf(installRequest('/login')),'email'=>'owner@example.test','password'=>$password]);
+$challenge=installRequest('/login/2fa'); installRequest('/login/2fa',['csrf_token'=>installCsrf($challenge),'totp_code'=>$codes[0]]);
+checkInstall(installRequest('/admin/dashboard')['status']===302,'Se reutilizó un código de recuperación consumido.');
+$challenge=installRequest('/login/2fa'); installRequest('/login/2fa',['csrf_token'=>installCsrf($challenge),'totp_code'=>$codes[1]]);
+$page=installRequest('/admin/identity-access');
+checkInstall(installRequest('/admin/identity-access',['csrf_token'=>installCsrf($page),'action'=>'mfa-policy','current_password'=>$password])['status']===302,'No se puede retirar la política desde una sesión verificada.');
+$report=['format'=>1,'time'=>time()-60,'backup'=>'release_fixture.zip','sha256'=>str_repeat('a',64),'checks'=>['database'=>true,'files'=>true,'admin_login'=>true]];
+checkInstall(App\Core\RecoveryReport::coverage(['file'=>'release_fixture.zip','time'=>time()-120],$report)['ok'],'No se reconoce el respaldo ensayado.');
+checkInstall(!App\Core\RecoveryReport::coverage(['file'=>'release_new.zip','time'=>time()],$report)['ok'],'Un respaldo nuevo hereda indebidamente el ensayo anterior.');
+$report=['format'=>1,'time'=>time()-60,'backup'=>'release_fixture.zip','sha256'=>str_repeat('a',64),'checks'=>['database'=>true,'files'=>true,'admin_login'=>true]];
+checkInstall(App\Core\RecoveryReport::coverage(['file'=>'release_fixture.zip','time'=>time()-120],$report)['ok'],'No se reconoce el respaldo probado.');
+checkInstall(!App\Core\RecoveryReport::coverage(['file'=>'release_fixture.zip','time'=>time()],$report)['ok'],'Un respaldo modificado hereda indebidamente el ensayo anterior.');
+checkInstall(!App\Core\RecoveryReport::coverage(null,$report)['ok'],'Se declara recuperable un respaldo ausente.');
+echo "Política MFA, inscripción, códigos de un solo uso y cobertura del respaldo verificados.\n";

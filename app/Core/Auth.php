@@ -228,6 +228,16 @@ class Auth
     public static function requireAdmin(): void
     {
         self::initSession();
+        if (self::check() && IdentityAccess::requiresMfa() && empty($_SESSION['mfa_verified'])) {
+            $user=Database::getInstance()->fetch('SELECT * FROM users WHERE id=?',[self::id()]);
+            if (!empty($user['totp_secret'])) {
+                self::beginSecondFactor($user);
+                header('Location: /login/2fa');
+            } else {
+                header('Location: /account/security');
+            }
+            exit;
+        }
         if (!self::check() || !IdentityAccess::canEnter()) {
             header('Location: /login');
             exit;

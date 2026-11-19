@@ -27,4 +27,15 @@ final class RecoveryReport
             && is_string($report['sha256']??null) && preg_match('/^[a-f0-9]{64}$/D',$report['sha256'])===1
             && ($report['checks']??null)===['database'=>true,'files'=>true,'admin_login'=>true];
     }
+
+    public static function coverage(?array $backup,?array $report): array
+    {
+        if (!$backup) return ['ok'=>false,'detail'=>'No hay un respaldo local disponible.'];
+        if (!$report || !self::valid($report)) return ['ok'=>false,'detail'=>'Todavía no hay un ensayo aislado registrado.'];
+        if ($backup['file']!==$report['backup'] || $backup['time']>$report['time']) {
+            return ['ok'=>false,'detail'=>'El respaldo más reciente todavía no tiene un ensayo registrado.'];
+        }
+        if (time()-$report['time']>30*86400) return ['ok'=>false,'detail'=>'El último ensayo tiene más de 30 días. Repite la comprobación.'];
+        return ['ok'=>true,'detail'=>'Último respaldo probado con base de datos, archivos y acceso al panel.'];
+    }
 }
