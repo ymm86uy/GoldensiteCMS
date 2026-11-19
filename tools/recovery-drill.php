@@ -75,6 +75,18 @@ try {
     foreach ($config as $key=>$value) $lines[]=$key.'='.json_encode($value,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
     file_put_contents($folder.'/.env',implode("\n",$lines)."\n",LOCK_EX);
     chmod($folder.'/.env',0600);
+    // The restored site keeps its MFA policy. Prepare a factor only for the isolated test account.
+    $recoveryCode=strtoupper(bin2hex(random_bytes(8)));
+    $seed=''; for ($i=0;$i<32;$i++) $seed.='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'[random_int(0,31)];
+    $originalAppKey=getenv('APP_KEY');
+    putenv('APP_KEY='.$config['APP_KEY']);
+    try {
+        $sealed=\App\Core\SecretStore::seal($seed);
+    } finally {
+        $originalAppKey===false?putenv('APP_KEY'):putenv('APP_KEY='.$originalAppKey);
+    }
+    $db->prepare('UPDATE users SET totp_secret=?,totp_recovery_json=? WHERE username=?')->execute([
+        $sealed,json_encode([hash('sha256',$recoveryCode)],JSON_THROW_ON_ERROR),$user]);
     $env=array_intersect_key(getenv(),array_flip(['PATH','SystemRoot','WINDIR','TEMP','TMP']));
     $runner=proc_open([PHP_BINARY,'-S',$address,'-t',$folder.'/public',$folder.'/public/index.php'],[0=>['pipe','r'],1=>['file',$folder.'/storage/drill.log','a'],2=>['file',$folder.'/storage/drill.log','a']],$pipes,$folder,$env,['bypass_shell'=>true]);
     if (!is_resource($runner)) throw new RuntimeException('No se pudo iniciar el sitio restaurado.');
@@ -93,6 +105,13 @@ try {
         curl_setopt_array($curl,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>http_build_query(['csrf_token'=>$match[1],'email'=>$user,'password'=>$password])]);
         curl_exec($curl);
         if (curl_getinfo($curl,CURLINFO_RESPONSE_CODE)!==302) throw new RuntimeException('No se completó el inicio de sesión.');
+        curl_setopt_array($curl,[CURLOPT_HTTPGET=>true,CURLOPT_URL=>$origin.'/login/2fa']);
+        $challenge=curl_exec($curl);
+        if (curl_getinfo($curl,CURLINFO_RESPONSE_CODE)!==200 || !is_string($challenge)
+            || !preg_match('/name="csrf_token"\s+value="([a-f0-9]+)"/',$challenge,$match)) throw new RuntimeException('El sitio restaurado no muestra el segundo factor.');
+        curl_setopt_array($curl,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>http_build_query(['csrf_token'=>$match[1],'totp_code'=>$recoveryCode])]);
+        curl_exec($curl);
+        if (curl_getinfo($curl,CURLINFO_RESPONSE_CODE)!==302) throw new RuntimeException('No se pudo verificar el segundo factor del ensayo.');
         curl_setopt_array($curl,[CURLOPT_HTTPGET=>true,CURLOPT_URL=>$origin.'/admin/dashboard']);
         $dashboard=curl_exec($curl);
         if (curl_getinfo($curl,CURLINFO_RESPONSE_CODE)!==200 || !is_string($dashboard) || !str_contains($dashboard,$user)) throw new RuntimeException('No se pudo verificar el panel con la sesión de ensayo.');
