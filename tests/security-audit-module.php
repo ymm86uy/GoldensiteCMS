@@ -42,8 +42,9 @@ $entries=$store->recent();
 checkInstall(count($entries)===1 && $entries[0]['cms_version']===trim(file_get_contents($fixture.'/release-version.txt')),'No se guardó la versión de la auditoría.');
 $firstId=(int)$entries[0]['id'];
 $stored=installRequest($auditRoute.'?audit='.$firstId);
-checkInstall($stored['status']===200 && str_contains($stored['body'],'Historial de auditorías')
-    && str_contains($stored['body'],'referencia inicial') && !str_contains($stored['body'],'AUDIT_PRIVATE_MARKER_QA'),'No se recuperó el informe privado esperado.');
+$storedBody=html_entity_decode($stored['body'],ENT_QUOTES|ENT_HTML5,'UTF-8');
+checkInstall($stored['status']===200 && str_contains($storedBody,'Historial de auditorías')
+    && str_contains($storedBody,'referencia inicial') && !str_contains($storedBody,'AUDIT_PRIVATE_MARKER_QA'),'No se recuperó el informe privado esperado.');
 checkInstall(count($store->recent())===1,'Abrir un informe ejecutó otra auditoría.');
 for ($i=0;$i<31;$i++) $last=$store->save(['findings'=>[],'limits'=>[],'completed'=>[],'coverage'=>[]],(int)$admin[0]['id'],'1.0.35',$owner?'owner':'commercial');
 checkInstall(count($store->recent())===30 && $store->find($firstId)===null,'La retención no conserva exactamente los últimos 30 informes.');
