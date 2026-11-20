@@ -22,6 +22,12 @@ if ($owner) {
         file_put_contents($policy,App\Core\LicenseCode::sign($claims,$private,'NFXC1'));
     }
     file_put_contents($fixture.'/config/license-public.pem',openssl_pkey_get_details($key)['key']);
+    $integrityReference=$fixture.'/app/release-integrity.nfx';
+    if (is_file($integrityReference)) {
+        $payload=explode('.',trim(file_get_contents($integrityReference)))[1];
+        $claims=json_decode(base64_decode(strtr($payload,'-_','+/')),true,16,JSON_THROW_ON_ERROR);
+        file_put_contents($integrityReference,App\Core\LicenseCode::sign($claims,$private,'NFXRI1'));
+    }
     $license=App\Core\LicenseCode::sign(['v'=>1,'id'=>bin2hex(random_bytes(16)),'m'=>'security-audit','d'=>'127.0.0.1','iat'=>time()-1,'exp'=>time()+3600],$private);
     checkInstall(installRequest('/admin/plugins',['csrf_token'=>$token,'action_save_license'=>'1','license_key'=>$license,'module_id'=>'security-audit'])['status']===200,'Comercial no pudo activar la licencia válida.');
 }
@@ -32,6 +38,8 @@ $file=$fixture.'/public/audit-fixture.bak';
 file_put_contents($file,'AUDIT_PRIVATE_MARKER_QA');
 $data=['edition'=>$owner?'owner':'commercial','version'=>trim(file_get_contents($fixture.'/release-version.txt')),'files'=>['routes/modules.php'=>str_repeat('0',64)]];
 file_put_contents($fixture.'/storage/audit-release-manifest.json',json_encode($data,JSON_THROW_ON_ERROR));
+$integrityFile=$fixture.'/routes/modules.php'; $integrityOriginal=file_get_contents($integrityFile);
+file_put_contents($integrityFile,$integrityOriginal."\n// Controlled audit integrity fixture.\n");
 $scan=installRequest($auditRoute,['csrf_token'=>installCsrf($page)]);
 $body=html_entity_decode($scan['body'],ENT_QUOTES|ENT_HTML5,'UTF-8');
 checkInstall($scan['status']===200 && str_contains($body,'public/audit-fixture.bak') && str_contains($body,'Administrador sin segundo factor')
@@ -60,4 +68,5 @@ $cookie=$fixture.'/storage/audit-delegate.cookie';
 checkInstall(installRequest('/login',['csrf_token'=>installCsrf(installRequest('/login')),'email'=>'auditor@example.test','password'=>$delegatedPassword])['status']===302,'No se inició sesión delegada.');
 checkInstall(installRequest($auditRoute)['status']===403,'Una cuenta delegada abrió la auditoría.');
 checkInstall(installRequest($auditRoute.'?audit='.$last['id'])['status']===403,'Una cuenta delegada abrió un informe histórico.');
+file_put_contents($integrityFile,$integrityOriginal);
 echo "Auditoría interna: licencia, permisos, CSRF, límites e informe verificados.\n";
