@@ -2,6 +2,8 @@
 
 ## Consolidación 1.0.37
 
+Revisión de distribución **r2**: el parche compacto conserva la comprobación antivirus y la firma. Reutiliza únicamente dependencias, recursos y base geográfica cuyos bytes coinciden con el instalador de origen; incluye el código propio como conjunto de reparación y repone el lector MaxMind. Reduce el trabajo de subida/análisis en alojamientos donde el ZIP completo supera el presupuesto antivirus de 12 segundos. El generador acepta `--compact` después del instalador base. La revisión no cambia la versión de aplicación ni desactiva controles. Usa el ZIP y la firma que llevan juntos el sufijo `r2`.
+
 Esta entrega conserva los motores nativos de chat, boletín y consentimiento. Las rutas antiguas de plugins y del banner cargan la misma implementación mediante entradas de compatibilidad; no se eliminan sus datos ni se mantienen clases alternativas. Los temas Dealer y Library conservan su identidad y comparten la estructura de presentación.
 
 El chat y su moderación utilizan el esquema canónico del migrador. Se conservan salas, mensajes y permisos existentes; un fallo de almacenamiento se presenta como indisponibilidad, no como una conversación vacía ni como autorización para ignorar una sanción. El inventariador `php tools/audit.php` identifica clases duplicadas y devuelve error cuando existen. El generador de instaladores también rechaza esas colisiones.

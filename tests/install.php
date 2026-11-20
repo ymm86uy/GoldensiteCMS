@@ -126,6 +126,13 @@ try {
     checkInstall(installRequest('/install.php')['status'] === 403, 'El instalador debe quedar cerrado tras completar.');
     checkInstall(installRequest('/install.php', $form)['status'] === 403, 'Repetir la instalación no puede restablecer la cuenta.');
     if ($update !== null) {
+        if (getenv('GOLDENSITE_TEST_REPAIR_DRIFT')==='1') {
+            foreach (['views/cookie-policy.php','vendor/maxmind-db/reader/autoload.php'] as $missing) {
+                if (is_file($fixture.'/'.$missing)) unlink($fixture.'/'.$missing);
+            }
+            $legacy=$fixture.'/app/Controllers/Admin/GdprController.php';
+            file_put_contents($legacy,str_replace('<?php','<?php /* Previous deployment differs */',file_get_contents($legacy)));
+        }
         $hasSocial=$db->query("SHOW TABLES LIKE 'goldensite_social_echoes'")->fetchColumn();
         if ($hasSocial) {
             $db->prepare("INSERT INTO goldensite_social_echoes (user_id,title,body,region) VALUES (?,'Eco anterior al parche','Ecos conservados','UY')")->execute([(int)$admin[0]['id']]);
@@ -148,6 +155,10 @@ try {
         $addsSocialLocation=$archive->locateName('modules/GoldensiteSocial/Location.php')!==false;
         $archive->close();
         checkInstall(trim(file_get_contents($fixture.'/release-version.txt'))===$manifest['version'] && is_file($fixture.'/app/Core/WeatherTime.php'), 'El panel no actualizó los archivos y la versión.');
+        if (getenv('GOLDENSITE_TEST_REPAIR_DRIFT')==='1') {
+            checkInstall(is_file($fixture.'/views/cookie-policy.php') && is_file($fixture.'/vendor/maxmind-db/reader/autoload.php')
+                && !str_contains(file_get_contents($fixture.'/app/Controllers/Admin/GdprController.php'),'Previous deployment differs'), 'El parche compacto no repara archivos ausentes y modificados.');
+        }
         if ($hasSocial && $addsSocialLocation) {
             $legacyEcho=$db->query('SELECT region,zone_row,zone_col,image_key FROM goldensite_social_echoes WHERE id='.$legacyEchoId)->fetch();
             checkInstall($legacyEcho===['region'=>'UY','zone_row'=>null,'zone_col'=>null,'image_key'=>null],'La migración cambió la privacidad de un eco existente.');
