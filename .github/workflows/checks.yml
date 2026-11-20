@@ -38,7 +38,7 @@ jobs:
       - run: php tools/verify-source.php
       - run: php tools/audit.php
       - run: php tests/run.php
-      - name: Comprobar migración de chat sin pérdida de datos
+      - name: Comprobar migraciones y respaldo consistente
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306

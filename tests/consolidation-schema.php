@@ -31,4 +31,5 @@ try {
     try { Plugins\GoldensiteChat\ChatEngine::getRooms(); $check(false,'Un error de almacenamiento se presentó como lista vacía'); }
     catch (RuntimeException $error) { $check(str_contains($error->getMessage(),'Referencia ') && !str_contains($error->getMessage(),'SQLSTATE'),'El error no distingue indisponibilidad o expone datos internos'); }
 } finally { $db->exec('RENAME TABLE chat_test_unavailable TO goldensite_chat_rooms'); }
-echo "OK: $checks comprobaciones de migración de chat y conservación de datos.\n";
+require __DIR__.'/backup-consistency.php';
+echo "OK: $checks comprobaciones de migración de chat y respaldo consistente.\n";

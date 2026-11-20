@@ -10,6 +10,8 @@ Los instaladores de ambas ediciones se construyen desde la fuente consolidada, y
 
 El generador acepta como cuarto argumento un instalador base de la misma edición para conservar su catálogo público firmado y sus precios. El generador de parches admite como quinto argumento ese instalador de origen: omite el router de desarrollo si sus bytes no cambiaron, para permitir las pruebas desde Windows sin reemplazar un archivo que el servidor mantiene abierto. Las nuevas instalaciones del actualizador también evitan reescribir contenidos idénticos.
 
+Si MariaDB/MySQL invalida la lectura consistente de un respaldo por un cambio concurrente de estructura (error 1412), se descarta la copia parcial y se reintenta una sola vez desde una transacción nueva. Si vuelve a fallar no se anuncia un respaldo válido. El generador rechaza conexiones que ya tengan una transacción pendiente para no intervenir trabajo ajeno. Mantén detenidas las escrituras y los cambios de esquema durante las actualizaciones y pruebas de restauración.
+
 Antes de instalar, verifica la edición y versión de origen; utiliza la firma correspondiente al ZIP. Los cambios de código que el administrador haya realizado directamente pueden ser reemplazados por esta actualización completa; el actualizador guarda el respaldo previo. Guarda tus personalizaciones y revisa el manifiesto antes de instalar.
 
 ## Consultar el canal comercial
