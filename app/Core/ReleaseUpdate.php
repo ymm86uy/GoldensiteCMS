@@ -262,6 +262,8 @@ final class ReleaseUpdate
         $directory = dirname($path);
         if (!is_dir($directory) && !mkdir($directory,0755,true)) throw new \RuntimeException('No se pudo crear el destino.');
         if (is_link($path)) throw new \RuntimeException('Destino enlazado.');
+        // Running development routers can be locked on Windows. Identical code needs no replacement.
+        if ($mode===null && is_file($path) && hash_equals(hash('sha256',$contents),(string)hash_file('sha256',$path))) return;
         $temporary = $directory.'/.goldensite-'.bin2hex(random_bytes(12));
         try {
             if (file_put_contents($temporary,$contents,LOCK_EX)!==strlen($contents)

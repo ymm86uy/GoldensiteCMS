@@ -1,5 +1,17 @@
 # Actualizaciones de GoldenSiteCMS
 
+## Consolidación 1.0.37
+
+Esta entrega conserva los motores nativos de chat, boletín y consentimiento. Las rutas antiguas de plugins y del banner cargan la misma implementación mediante entradas de compatibilidad; no se eliminan sus datos ni se mantienen clases alternativas. Los temas Dealer y Library conservan su identidad y comparten la estructura de presentación.
+
+El chat y su moderación utilizan el esquema canónico del migrador. Se conservan salas, mensajes y permisos existentes; un fallo de almacenamiento se presenta como indisponibilidad, no como una conversación vacía ni como autorización para ignorar una sanción. El inventariador `php tools/audit.php` identifica clases duplicadas y devuelve error cuando existen. El generador de instaladores también rechaza esas colisiones.
+
+Los instaladores de ambas ediciones se construyen desde la fuente consolidada, y el parche firmado 1.0.36 → 1.0.37 incorpora todos sus archivos actualizables. Esto repone, entre otros, la vista pública y la administración de la política de cookies cuando faltan en una instalación que declara 1.0.36. No reemplaza usuarios, contenido, claves privadas ni configuración local. Los archivos de recuperación se conservan.
+
+El generador acepta como cuarto argumento un instalador base de la misma edición para conservar su catálogo público firmado y sus precios. El generador de parches admite como quinto argumento ese instalador de origen: omite el router de desarrollo si sus bytes no cambiaron, para permitir las pruebas desde Windows sin reemplazar un archivo que el servidor mantiene abierto. Las nuevas instalaciones del actualizador también evitan reescribir contenidos idénticos.
+
+Antes de instalar, verifica la edición y versión de origen; utiliza la firma correspondiente al ZIP. Los cambios de código que el administrador haya realizado directamente pueden ser reemplazados por esta actualización completa; el actualizador guarda el respaldo previo. Guarda tus personalizaciones y revisa el manifiesto antes de instalar.
+
 ## Consultar el canal comercial
 
 La edición Comercial consulta `https://goldensitecms.com/updates/commercial/<version-instalada>.nfx`. En **Release Manager & Advanced Backup**, abre **Buscar actualizaciones oficiales**. También puedes ejecutar `php tools/release-update.php check` desde la raíz del CMS. La consulta comparte la versión instalada en la ruta solicitada y verifica el aviso con la clave pública de GoldenSiteCMS. Si encuentra un paquete, muestra el ZIP y su firma. La instalación se realiza con el procedimiento de preparación y aplicación descrito abajo.

@@ -6,6 +6,14 @@ final class ChatController
 {
     public function index(): void
     {
+        try { $this->conversation(); }
+        catch (\RuntimeException $error) {
+            error_log('Goldensite chat page: '.$error->getMessage());
+            $this->unavailable('El chat no está disponible temporalmente. Intenta más tarde.',503);
+        }
+    }
+    private function conversation(): void
+    {
         header('Cache-Control: no-store, private');
         if (!Auth::check()) {
             header('Location: /login?return_to=%2Fchat');
@@ -33,9 +41,9 @@ final class ChatController
         ob_start(); require dirname(__DIR__,2).'/views/frontend/chat.php';
         $content = ob_get_clean(); $siteSettings = FrontendEngine::getSettings(); $siteTitle = 'Chat de la comunidad'; require dirname(__DIR__, 2) . '/views/layouts/main.php';
     }
-    private function unavailable(string $message): void
+    private function unavailable(string $message,int $status=403): void
     {
-        http_response_code(403);
+        http_response_code($status);
         $e=\App\Core\ConsoleView::escape(...);
         $siteTitle='Chat no disponible · Goldensite';
         ob_start(); require dirname(__DIR__,2).'/views/frontend/chat_unavailable.php';

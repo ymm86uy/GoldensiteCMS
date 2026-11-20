@@ -4,6 +4,46 @@ namespace App\Core;
 
 final class ReleaseIntegrity
 {
+    /** Inspect declarations without executing application code or loading its configuration. */
+    public static function duplicateClasses(string $root): array
+    {
+        $classes=[];
+        foreach (['app','config','modules','plugins','public','routes','tools','views'] as $scope) {
+            $directory=$root.'/'.$scope;
+            if (!is_dir($directory) || is_link($directory)) continue;
+            $iterator=new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory,\FilesystemIterator::SKIP_DOTS));
+            foreach ($iterator as $file) {
+                if (!$file->isFile() || $file->isLink() || strtolower($file->getExtension())!=='php') continue;
+                $path=str_replace('\\','/',substr($file->getPathname(),strlen(rtrim($root,'/\\'))+1));
+                if (preg_match('~^public/(?:uploads|cache|downloads|updates|assets/site-icons)/|\.(?:bak|bak\.php)$| - copia\.php$~i',$path)) continue;
+                $tokens=token_get_all((string)file_get_contents($file->getPathname()),TOKEN_PARSE);
+                $namespace='';
+                foreach ($tokens as $index=>$token) {
+                    if (!is_array($token)) continue;
+                    if ($token[0]===T_NAMESPACE) {
+                        $namespace='';
+                        for ($next=$index+1;isset($tokens[$next]);$next++) {
+                            $part=$tokens[$next];
+                            if ($part===';' || $part==='{') break;
+                            if (is_array($part) && in_array($part[0],[T_STRING,T_NAME_QUALIFIED,T_NS_SEPARATOR],true)) $namespace.=$part[1];
+                        }
+                    }
+                    if (!in_array($token[0],[T_CLASS,T_INTERFACE,T_TRAIT,T_ENUM],true)) continue;
+                    for ($next=$index+1;isset($tokens[$next]);$next++) {
+                        $name=$tokens[$next];
+                        if (is_array($name) && in_array($name[0],[T_WHITESPACE,T_COMMENT,T_DOC_COMMENT],true)) continue;
+                        if (is_array($name) && $name[0]===T_STRING) {
+                            $key=strtolower(ltrim($namespace.'\\'.$name[1],'\\'));
+                            $classes[$key][]=['path'=>$path,'line'=>$token[2]];
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        return array_filter($classes,static fn(array $declarations): bool=>count($declarations)>1);
+    }
+
     public static function compare(string $root,string $file,?int $budget=null): array
     {
         if (is_link($file) || !is_file($file) || filesize($file)>2097152) throw new \RuntimeException('Manifiesto inválido.');

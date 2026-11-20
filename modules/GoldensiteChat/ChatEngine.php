@@ -17,66 +17,43 @@ class ChatEngine
     {
         try {
             $db = Database::getInstance()->getConnection();
+            \App\Core\SchemaMigrator::migrate($db,null,['goldensite_chat_rooms','goldensite_chat_messages','goldensite_chat_sanctions','goldensite_chat_user_roles']);
+        } catch (\Throwable $e) { self::unavailable($e); }
+    }
 
-            $db->exec("CREATE TABLE IF NOT EXISTS goldensite_chat_rooms (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                slug VARCHAR(50) UNIQUE NOT NULL,
-                name VARCHAR(100) NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-
-            $db->exec("CREATE TABLE IF NOT EXISTS goldensite_chat_messages (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                sender_name VARCHAR(100) NOT NULL,
-                user_role VARCHAR(20) DEFAULT 'user',
-                message TEXT NOT NULL,
-                image_url VARCHAR(255) NULL,
-                channel VARCHAR(50) DEFAULT 'general',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-
-            $db->exec("CREATE TABLE IF NOT EXISTS goldensite_chat_sanctions (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(100) NOT NULL,
-                type VARCHAR(20) DEFAULT 'mute',
-                reason VARCHAR(255) NULL,
-                expires_at DATETIME NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-
-            // Cargar salas por defecto
-            $db->exec("INSERT IGNORE INTO goldensite_chat_rooms (slug, name, access_type) VALUES 
-                ('general', '🌐 Sala General', 'public'),
-                ('soporte', '🛠️ Soporte Técnico', 'public'),
-                ('vip', '⭐ Canal VIP', 'vip');");
-
-        } catch (\Throwable $e) {}
+    private static function unavailable(\Throwable $error): never
+    {
+        $reference=bin2hex(random_bytes(8));
+        error_log('Goldensite chat '.$reference.': '.get_class($error).': '.$error->getMessage());
+        throw new \RuntimeException('El chat no está disponible temporalmente. Referencia '.$reference,0,$error);
     }
 
     public static function getRooms(): array
     {
-        self::initSchema();
         try {
             $db = Database::getInstance()->getConnection();
-            return $db->query("SELECT * FROM goldensite_chat_rooms ORDER BY id ASC")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable $e) { return []; }
+            $rooms=$db->query("SELECT * FROM goldensite_chat_rooms ORDER BY id ASC")->fetchAll(\PDO::FETCH_ASSOC);
+            if (!$rooms) {
+                \App\Core\SchemaMigrator::seedChatRooms($db);
+                $rooms=$db->query("SELECT * FROM goldensite_chat_rooms ORDER BY id ASC")->fetchAll(\PDO::FETCH_ASSOC);
+            }
+            return $rooms;
+        } catch (\Throwable $e) { self::unavailable($e); }
     }
 
     public static function getMessages(string $channel = 'general'): array
     {
-        self::initSchema();
         if (!self::canAccess($channel)) return [];
         try {
             $db = Database::getInstance()->getConnection();
             $stmt = $db->prepare("SELECT * FROM (SELECT * FROM goldensite_chat_messages WHERE channel = :c ORDER BY id DESC LIMIT 100) latest ORDER BY id ASC");
             $stmt->execute(['c' => $channel]);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-        } catch (\Throwable $e) { return []; }
+        } catch (\Throwable $e) { self::unavailable($e); }
     }
 
     public static function processMessage(string $sender, string $message, string $channel = 'general', string $imgUrl = ''): array
     {
-        self::initSchema();
         if (!self::canAccess($channel)) return ['success' => false, 'msg' => 'Sala no disponible para esta cuenta.'];
         $sender = (string)(\App\Core\Auth::user()['username'] ?? '');
         if ($sender === '' || trim($message) === '' || mb_strlen($message) > 2000 || ($imgUrl !== '' && !str_starts_with($imgUrl, '/uploads/'))) return ['success' => false, 'msg' => 'Mensaje inválido.'];
@@ -90,7 +67,7 @@ class ChatEngine
             if ($sanc) {
                 return ['success' => false, 'msg' => '⛔ Estás ' . ($sanc['type'] === 'ban' ? 'baneado' : 'silenciado') . ' del chat.'];
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) { self::unavailable($e); }
 
         // 2. Filtro de Palabras Prohibidas
         $bannedWords = self::$defaultBanned;
@@ -99,7 +76,7 @@ class ChatEngine
             if ($r && $val = $r->fetchColumn()) {
                 $bannedWords = array_map('trim', explode(',', $val));
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) { self::unavailable($e); }
 
         foreach ($bannedWords as $word) {
             if (!empty($word) && preg_match("/\b" . preg_quote($word, '/') . "\b/i", $message)) {
@@ -116,7 +93,7 @@ class ChatEngine
             $stmt->execute(['s' => $sender, 'm' => $message, 'img' => $imgUrl, 'c' => $channel]);
             return ['success' => true, 'msg' => 'Mensaje enviado.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'msg' => 'Error de base de datos.'];
+            self::unavailable($e);
         }
     }
 
@@ -187,7 +164,7 @@ class ChatEngine
         try {
             $r = $db->query("SELECT setting_value FROM settings WHERE setting_key = 'chat_banned_words' LIMIT 1");
             if ($r) $bannedWordsVal = $r->fetchColumn() ?: implode(',', self::$defaultBanned);
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) { self::unavailable($e); }
 
         $sanctions = $db->query("SELECT * FROM goldensite_chat_sanctions ORDER BY id DESC LIMIT 20")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 

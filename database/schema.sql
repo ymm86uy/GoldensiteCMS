@@ -758,6 +758,19 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
+CREATE TABLE IF NOT EXISTS goldensite_editorial_queue (
+    entity ENUM('page','post') NOT NULL,
+    document_id BIGINT UNSIGNED NOT NULL,
+    fingerprint CHAR(64) NOT NULL,
+    state ENUM('review','approved','scheduled','stale') NOT NULL,
+    requested_by BIGINT UNSIGNED NOT NULL,
+    reviewed_by BIGINT UNSIGNED DEFAULT NULL,
+    scheduled_by BIGINT UNSIGNED DEFAULT NULL,
+    publish_at BIGINT UNSIGNED DEFAULT NULL,
+    PRIMARY KEY (entity, document_id),
+    KEY editorial_due (state, publish_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS goldensite_editorial_history (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     entity VARCHAR(8) NOT NULL,
@@ -1444,19 +1457,6 @@ CREATE TABLE IF NOT EXISTS goldensite_social_presence (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS goldensite_editorial_queue (
-    entity ENUM('page','post') NOT NULL,
-    document_id BIGINT UNSIGNED NOT NULL,
-    fingerprint CHAR(64) NOT NULL,
-    state ENUM('review','approved','scheduled','stale') NOT NULL,
-    requested_by BIGINT UNSIGNED NOT NULL,
-    reviewed_by BIGINT UNSIGNED DEFAULT NULL,
-    scheduled_by BIGINT UNSIGNED DEFAULT NULL,
-    publish_at BIGINT UNSIGNED DEFAULT NULL,
-    PRIMARY KEY (entity, document_id),
-    KEY editorial_due (state, publish_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 CREATE TABLE IF NOT EXISTS goldensite_security_audits (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1465,4 +1465,3 @@ CREATE TABLE IF NOT EXISTS goldensite_security_audits (
  edition VARCHAR(16) NOT NULL,
  report_json MEDIUMTEXT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-

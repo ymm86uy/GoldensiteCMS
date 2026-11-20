@@ -15,9 +15,11 @@ class ChatApiController
         $channel = is_string($_GET['channel'] ?? null) ? $_GET['channel'] : 'general';
 
         if (class_exists('\Plugins\GoldensiteChat\ChatEngine')) {
+            try {
             if (!\Plugins\GoldensiteChat\ChatEngine::canAccess($channel)) { http_response_code(403); echo json_encode(['success' => false]); return; }
             $messages = \Plugins\GoldensiteChat\ChatEngine::getMessages($channel);
             echo json_encode(['success' => true, 'channel' => $channel, 'messages' => $messages]);
+            } catch (\RuntimeException $error) { $this->unavailable($error); }
             exit;
         }
 
@@ -45,12 +47,22 @@ class ChatApiController
         }
 
         if (class_exists('\Plugins\GoldensiteChat\ChatEngine')) {
+            try {
             $res = \Plugins\GoldensiteChat\ChatEngine::inspectAndFilter($sender, $message, $channel);
             echo json_encode($res);
+            } catch (\RuntimeException $error) { $this->unavailable($error); }
             exit;
         }
 
         echo json_encode(['success' => false, 'msg' => 'Motor de chat no activo.']);
         exit;
+    }
+
+    private function unavailable(\RuntimeException $error): void
+    {
+        error_log('Goldensite chat API: '.$error->getMessage());
+        http_response_code(503);
+        header('Cache-Control: no-store');
+        echo json_encode(['success'=>false,'msg'=>'El chat no está disponible temporalmente. Intenta más tarde.']);
     }
 }

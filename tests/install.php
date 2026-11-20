@@ -7,6 +7,8 @@ $update = isset($argv[2]) ? realpath($argv[2]) : null;
 if ($update === false || ($update !== null && !is_file($update.'.signature.txt'))) throw new RuntimeException('Indica un parche con su firma.');
 $database = getenv('GOLDENSITE_TEST_DB');
 if (!is_file($package) || !is_string($database) || !preg_match('/^goldensite_test_[a-z0-9_]+$/D', $database)) throw new RuntimeException('Indica un paquete ZIP y una base vacía GOLDENSITE_TEST_DB que empiece por goldensite_test_.');
+putenv('DB_NAME='.$database);
+putenv('GOLDENSITE_ENV_FILE='.__DIR__.'/no-site-environment');
 $fixture = $root . '/storage/install-test-' . bin2hex(random_bytes(5));
 mkdir($fixture, 0700, true);
 $zip = new ZipArchive();
@@ -156,6 +158,10 @@ try {
         if ($previousTier === false) $db->exec("DELETE FROM goldensite_module_offers WHERE module_id='release-backup'");
         else $db->prepare("UPDATE goldensite_module_offers SET tier=? WHERE module_id='release-backup'")->execute([$previousTier]);
         installRequest('/logout',['csrf_token'=>$token]);
+    }
+    if (getenv('GOLDENSITE_TEST_CHAT_CONSOLIDATION')==='1') {
+        require __DIR__.'/chat-consolidation.php';
+        return;
     }
     if (getenv('GOLDENSITE_TEST_ACCESS_RECOVERY')==='1') {
         require __DIR__.'/edition-channel.php';

@@ -60,6 +60,7 @@ mkdir($directory . '/extract');
 try { SafeArchive::apply($archive, $directory . '/extract'); verify(false, 'ZIP malicioso'); } catch (RuntimeException $expected) { verify(!file_exists($directory . '/extract/app/ok.txt'), 'ZIP se valida completo antes de escribir'); }
 session_write_close();
 
+require __DIR__.'/consolidation.php';
 $database = getenv('GOLDENSITE_TEST_DB');
 verify(App\Core\ModuleJobs::health([],0,1000)['ok'],'Una cola vacía no implica un trabajador averiado');
 verify(!App\Core\ModuleJobs::health([['state'=>'queued','count'=>2,'due'=>2]],1,1000)['ok'],'Tareas vencidas sin trabajador reciente requieren revisión');

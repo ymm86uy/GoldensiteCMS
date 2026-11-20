@@ -17,47 +17,12 @@ class ChatModerationController
 
         $db = Database::getInstance()->getConnection();
 
-        // 1. Asegurar esquema completo de la BD para Moderación, Roles y Salas
         try {
-            $db->exec("CREATE TABLE IF NOT EXISTS goldensite_chat_rooms (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                slug VARCHAR(50) UNIQUE NOT NULL,
-                name VARCHAR(100) NOT NULL,
-                description VARCHAR(255) NULL,
-                access_type ENUM('public', 'private', 'vip') DEFAULT 'public',
-                moderator_username VARCHAR(100) DEFAULT 'admin',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-
-            // Insertar salas base si está vacía
-            $stmtCount = $db->query("SELECT COUNT(*) FROM goldensite_chat_rooms");
-            if ($stmtCount->fetchColumn() == 0) {
-                $db->exec("INSERT INTO goldensite_chat_rooms (slug, name, description, access_type, moderator_username) VALUES 
-                    ('General-Chat', '🌐 # General-Chat', 'Canal principal abierto para toda la comunidad', 'public', 'admin'),
-                    ('Novedades-Goldensite', '🚀 # Novedades-Goldensite', 'Anuncios oficiales y actualizaciones del sistema', 'public', 'admin'),
-                    ('Desarrolladores', '💻 # Desarrolladores', 'Canal técnico para código, scripts y soporte VIP', 'vip', 'admin');");
-            }
-
-            $db->exec("CREATE TABLE IF NOT EXISTS goldensite_chat_sanctions (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(100) NOT NULL,
-                type VARCHAR(20) NOT NULL DEFAULT 'mute',
-                reason VARCHAR(255) NULL,
-                expires_at DATETIME NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-
-            $db->exec("CREATE TABLE IF NOT EXISTS goldensite_chat_user_roles (
-                username VARCHAR(100) PRIMARY KEY,
-                chat_role VARCHAR(20) NOT NULL DEFAULT 'member',
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-
-            $db->exec("CREATE TABLE IF NOT EXISTS settings (
-                setting_key VARCHAR(100) PRIMARY KEY,
-                setting_value TEXT NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-        } catch (\Throwable $e) {}
+            \Plugins\GoldensiteChat\ChatEngine::getRooms();
+        } catch (\RuntimeException $error) {
+            http_response_code(503);
+            exit('La moderación del chat no está disponible temporalmente. Revisa el registro del servidor.');
+        }
 
         // 2. Validar que el módulo goldensite-chat esté activo
         try {

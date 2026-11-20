@@ -5,6 +5,12 @@ use PDO;
 
 final class SchemaMigrator
 {
+    public static function seedChatRooms(PDO $db): void
+    {
+        $db->exec("INSERT IGNORE INTO goldensite_chat_rooms (slug,name,access_type) VALUES
+            ('general','🌐 Sala General','public'),('soporte','🛠️ Soporte Técnico','public'),('vip','⭐ Canal VIP','vip')");
+    }
+
     public static function withModuleSchemas(string $sql): string
     {
         foreach (['GoldensiteForum'=>'goldensite_forum_categories','GoldensiteSocial'=>'goldensite_social_echoes','GoldensiteSecurityAudit'=>'goldensite_security_audits'] as $module=>$table) {
@@ -14,12 +20,16 @@ final class SchemaMigrator
         return $sql;
     }
 
-    public static function migrate(PDO $db, ?string $schema = null): array
+    public static function migrate(PDO $db, ?string $schema = null, ?array $tables = null): array
     {
         $sql = $schema ?? file_get_contents(dirname(__DIR__, 2) . '/database/schema.sql');
         if ($schema===null) $sql=self::withModuleSchemas($sql);
         preg_match_all('/CREATE TABLE IF NOT EXISTS (\w+)\s*\((.*?)\) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4[^;]*;/s', $sql, $statements, PREG_SET_ORDER);
         if ($schema !== null && !$statements) throw new \RuntimeException('El esquema de actualización no contiene tablas compatibles.');
+        if ($tables!==null) {
+            if (!$tables || array_diff($tables,array_column($statements,1))) throw new \InvalidArgumentException('La selección no pertenece al esquema del CMS.');
+            $statements=array_filter($statements,static fn(array $statement): bool=>in_array($statement[1],$tables,true));
+        }
         $changes = [];
         foreach ($statements as $statement) {
             $table = $statement[1];
@@ -39,7 +49,8 @@ final class SchemaMigrator
                 $changes[] = "$table.{$column[1]}";
             }
         }
-        if ($schema !== null) return $changes;
+        if (in_array('goldensite_chat_rooms',array_column($statements,1),true)) self::seedChatRooms($db);
+        if ($schema !== null || $tables!==null) return $changes;
         if (SessionSchema::ensure($db)) $changes[] = 'active_sessions.unique session identifier';
         $db->exec("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'user'");
         $db->exec("ALTER TABLE users ALTER COLUMN role_id SET DEFAULT 2");

@@ -1,42 +1,41 @@
 {
-  "name": "goldensite/cms",
-  "description": "GoldenSiteCMS",
-  "license": "proprietary",
-  "require": {
-    "php": "~8.4.27 || ~8.5.12",
-    "ext-pdo": "*",
-    "ext-openssl": "*",
-    "ext-pdo_mysql": "*",
-    "ext-fileinfo": "*",
-    "ext-mbstring": "*",
-    "ext-curl": "*",
-    "ext-gd": "*",
-    "ext-zip": "*",
-    "chillerlan/php-qrcode": "^5.0",
-    "phpmailer/phpmailer": "^7.1",
-    "firebase/php-jwt": "^7.2",
-    "ezyang/htmlpurifier": "^4.19",
-    "onelogin/php-saml": "^4",
-    "async-aws/s3": "^3.5",
-    "maxmind-db/reader": "^1.13"
-  },
-  "scripts": {
-    "audit:source": "@php tools/audit.php",
-    "test": "@php tests/run.php",
-    "verify:source": "@php tools/verify-source.php"
-  },
-  "autoload": {
-    "classmap": [
-      "modules/"
-    ],
-    "exclude-from-classmap": [
-      "**/*.bak.php",
-      "**/*.bak",
-      "**/* - copia.php"
-    ],
-    "psr-4": {
-      "App\\": "app/",
-      "Modules\\": "modules/"
+    "name": "goldensite/cms",
+    "description": "GoldenSiteCMS",
+    "license": "proprietary",
+    "require": {
+        "php": "~8.4.27 || ~8.5.12",
+        "ext-pdo": "*",
+        "ext-openssl": "*",
+        "ext-pdo_mysql": "*",
+        "ext-fileinfo": "*",
+        "ext-mbstring": "*",
+        "ext-curl": "*",
+        "ext-gd": "*",
+        "ext-zip": "*",
+        "chillerlan/php-qrcode": "^5.0",
+        "phpmailer/phpmailer": "^7.1",
+        "firebase/php-jwt": "^7.2",
+        "ezyang/htmlpurifier": "^4.19",
+        "onelogin/php-saml": "^4",
+        "async-aws/s3": "^3.5",
+        "maxmind-db/reader": "^1.13"
+    },
+    "scripts": {
+        "audit:source": "@php tools/audit.php",
+        "test": "@php tests/run.php"
+    },
+    "autoload": {
+        "classmap": [
+            "modules/"
+        ],
+        "exclude-from-classmap": [
+            "**/*.bak.php",
+            "**/*.bak",
+            "**/* - copia.php"
+        ],
+        "psr-4": {
+            "App\\": "app/",
+            "Modules\\": "modules/"
+        }
     }
-  }
 }

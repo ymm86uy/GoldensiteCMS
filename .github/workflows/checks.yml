@@ -33,9 +33,21 @@ jobs:
           tools: composer:v2
       - run: composer validate --strict --no-check-publish
       - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: composer dump-autoload --optimize --strict-ambiguous
       - run: composer audit --locked --no-interaction
       - run: php tools/verify-source.php
+      - run: php tools/audit.php
       - run: php tests/run.php
+      - name: Comprobar migración de chat sin pérdida de datos
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASS: ci-only-password
+          GOLDENSITE_TEST_DB: goldensite_test_ci_consolidation
+        run: |
+          php -r '$db=new PDO("mysql:host=127.0.0.1;dbname=goldensite_test_ci","root",getenv("DB_PASS")); $db->exec("CREATE DATABASE goldensite_test_ci_consolidation CHARACTER SET utf8mb4");'
+          php tests/consolidation-schema.php
       - name: Preparar instalación de prueba
         run: |
           git archive --format=zip --output="$RUNNER_TEMP/commercial.zip" HEAD
@@ -62,6 +74,18 @@ jobs:
           GOLDENSITE_INSTALL_TEST_PORT: '18085'
         run: |
           php -r '$db=new PDO("mysql:host=127.0.0.1;dbname=goldensite_test_ci","root",getenv("DB_PASS")); $db->exec("CREATE DATABASE goldensite_test_ci_audit");'
+          php tests/install.php "$RUNNER_TEMP/commercial.zip"
+      - name: Comprobar chat ante fallo de almacenamiento
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASS: ci-only-password
+          GOLDENSITE_TEST_DB: goldensite_test_ci_chat
+          GOLDENSITE_TEST_CHAT_CONSOLIDATION: '1'
+          GOLDENSITE_INSTALL_TEST_PORT: '18086'
+        run: |
+          php -r '$db=new PDO("mysql:host=127.0.0.1;dbname=goldensite_test_ci","root",getenv("DB_PASS")); $db->exec("CREATE DATABASE goldensite_test_ci_chat CHARACTER SET utf8mb4");'
           php tests/install.php "$RUNNER_TEMP/commercial.zip"
 
 

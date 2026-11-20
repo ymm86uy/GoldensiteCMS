@@ -10,13 +10,11 @@ class MailerEngine
     {
         try {
             $db = Database::getInstance()->getConnection();
-            $db->exec("CREATE TABLE IF NOT EXISTS goldensite_subscribers (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                status VARCHAR(20) DEFAULT 'active',
-                subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-        } catch (\Throwable $e) {}
+            \App\Core\SchemaMigrator::migrate($db,null,['goldensite_subscribers']);
+        } catch (\Throwable $e) {
+            error_log('Goldensite newsletter schema: '.$e->getMessage());
+            throw new \RuntimeException('El boletín no está disponible temporalmente.',0,$e);
+        }
     }
 
     public static function subscribe(string $email,bool $consent=false): bool
