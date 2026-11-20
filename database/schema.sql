@@ -1456,3 +1456,13 @@ CREATE TABLE IF NOT EXISTS goldensite_editorial_queue (
     PRIMARY KEY (entity, document_id),
     KEY editorial_due (state, publish_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS goldensite_security_audits (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ actor_id INT UNSIGNED NULL,
+ cms_version VARCHAR(32) NOT NULL,
+ edition VARCHAR(16) NOT NULL,
+ report_json MEDIUMTEXT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+

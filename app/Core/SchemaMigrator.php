@@ -7,7 +7,7 @@ final class SchemaMigrator
 {
     public static function withModuleSchemas(string $sql): string
     {
-        foreach (['GoldensiteForum'=>'goldensite_forum_categories','GoldensiteSocial'=>'goldensite_social_echoes'] as $module=>$table) {
+        foreach (['GoldensiteForum'=>'goldensite_forum_categories','GoldensiteSocial'=>'goldensite_social_echoes','GoldensiteSecurityAudit'=>'goldensite_security_audits'] as $module=>$table) {
             $path=dirname(__DIR__,2).'/modules/'.$module.'/Migrations/install.sql';
             if (!str_contains($sql,'CREATE TABLE IF NOT EXISTS '.$table) && is_file($path)) $sql.="\n".file_get_contents($path);
         }

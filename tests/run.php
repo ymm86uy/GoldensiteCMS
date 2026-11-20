@@ -61,6 +61,21 @@ try { SafeArchive::apply($archive, $directory . '/extract'); verify(false, 'ZIP 
 session_write_close();
 
 $database = getenv('GOLDENSITE_TEST_DB');
+$finding=['area'=>'headers','title'=>'Cabecera pendiente','location'=>'CSP','severity'=>'Alto','observed'=>true,'risk'=>'Prueba','fix'=>'Revisar'];
+$before=['findings'=>[$finding],'coverage'=>['headers'=>true]];
+$diff=Modules\GoldensiteSecurityAudit\AuditHistory::compare($before,null);
+verify($diff['first'] && count($diff['new'])===1,'Primera auditoría establece una referencia');
+$diff=Modules\GoldensiteSecurityAudit\AuditHistory::compare($before,$before);
+verify(count($diff['persistent'])===1 && !$diff['new'],'Hallazgo estable permanece');
+$diff=Modules\GoldensiteSecurityAudit\AuditHistory::compare(['findings'=>[],'coverage'=>['headers'=>true]],$before);
+verify(count($diff['resolved'])===1,'Ausencia con cobertura completa resuelve el hallazgo');
+$partial=['findings'=>[],'coverage'=>['headers'=>false]];
+$partial['comparison']=Modules\GoldensiteSecurityAudit\AuditHistory::compare($partial,$before);
+verify(count($partial['comparison']['unverified'])===1 && !$partial['comparison']['resolved'],'Una revisión incompleta no resuelve hallazgos');
+$diff=Modules\GoldensiteSecurityAudit\AuditHistory::compare(['findings'=>[],'coverage'=>['headers'=>false]],$partial);
+verify(count($diff['unverified'])===1,'Los pendientes sobreviven a varias auditorías incompletas');
+$diff=Modules\GoldensiteSecurityAudit\AuditHistory::compare(['findings'=>[],'coverage'=>['headers'=>true]],$partial);
+verify(count($diff['resolved'])===1,'Se resuelve un pendiente cuando se recupera la comprobación');
 $now=1763553600;
 $fresh='ClamAV 1.4.3/12345/'.gmdate('D M j H:i:s Y',$now-3600);
 verify(App\Core\HostingDiagnostics::signatureAge($fresh,$now)['state']==='checked','Fecha declarada reciente de firmas');

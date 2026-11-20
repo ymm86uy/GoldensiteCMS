@@ -12,12 +12,15 @@ final class SecurityScanner
     private const SOURCE_LIMIT=4194304;
     private array $findings=[];
     private array $limits=[];
+    private string $area='files';
+    private array $coverage=[];
 
     public function __construct(private readonly PDO $db, private readonly string $root, private readonly string $siteUrl) {}
 
     public function scan(): array
     {
         $this->findings=$this->limits=[];
+        $this->coverage=array_fill_keys(['files','integrity','runtime','accounts','headers'],true);
         $checks=[
             'Archivos e integridad'=>$this->files(...),
             'PHP y sesión'=>$this->runtime(...),
@@ -26,25 +29,29 @@ final class SecurityScanner
         ];
         $completed=[];
         foreach ($checks as $label=>$check) {
+            $this->area=['Archivos e integridad'=>'files','PHP y sesión'=>'runtime','Base de datos y cuentas'=>'accounts','Cabeceras HTTPS'=>'headers'][$label];
             try { $check(); $completed[]=$label; }
             catch (\Throwable $error) {
+                $this->coverage[$this->area]=false;
+                if ($this->area==='files') $this->coverage['integrity']=false;
                 error_log('Auditoría de seguridad: '.$label.' no completada ('.get_class($error).').');
                 $this->limits[]='No se pudo completar la revisión de '.$label.'.';
             }
         }
         $order=['Crítico'=>0,'Alto'=>1,'Medio'=>2,'Informativo'=>3];
         usort($this->findings,static fn(array $a,array $b): int=>$order[$a['severity']]<=>$order[$b['severity']]);
-        return ['findings'=>$this->findings,'limits'=>$this->limits,'completed'=>$completed];
+        return ['findings'=>$this->findings,'limits'=>$this->limits,'completed'=>$completed,'coverage'=>$this->coverage];
     }
 
     private function add(string $severity,string $title,string $location,string $risk,string $fix,bool $observed=true): void
     {
         if (count($this->findings)>=150) {
+            $this->coverage[$this->area]=false;
             $message='Se alcanzó el límite de 150 hallazgos. Repite la auditoría tras revisar los resultados.';
             if (!in_array($message,$this->limits,true)) $this->limits[]=$message;
             return;
         }
-        $this->findings[]=compact('severity','title','location','risk','fix','observed');
+        $this->findings[]=compact('severity','title','location','risk','fix','observed')+['area'=>$this->area];
     }
 
     private function files(): void
@@ -56,7 +63,7 @@ final class SecurityScanner
                 if ($mode!==false && ($mode&0002)) $this->add('Alto','Ruta escribible por cualquier usuario',$relative,'Otro usuario del servidor podría alterar archivos o configuración.','Asigna el directorio al usuario de la aplicación y retira el permiso de escritura para otros. Para .env, usa 0600 si PHP comparte su propietario.');
                 elseif ($relative==='.env' && $mode!==false && ($mode&0004)) $this->add('Alto','Configuración privada legible por otros usuarios',$relative,'Las credenciales quedarían disponibles para otras cuentas locales.','Cambia .env a 0600 y verifica que PHP conserva acceso.');
             }
-        } else $this->limits[]='Los permisos Unix no se pueden interpretar en Windows. Revisa las ACL del alojamiento.';
+        } else { $this->coverage['files']=false; $this->limits[]='Los permisos Unix no se pueden interpretar en Windows. Revisa las ACL del alojamiento.'; }
         foreach ([$public.'/.htaccess',$public.'/uploads/.htaccess'] as $rule) {
             if (!is_link($rule) && is_file($rule)) {
                 $contents=@file_get_contents($rule,false,null,0,16384);
@@ -109,17 +116,20 @@ final class SecurityScanner
                 $this->source($file->getPathname(),$relative,$scope==='public');
             }
         }
-        if ($partial) $this->limits[]='La revisión de archivos es parcial por permisos, tamaño o límite de análisis.';
+        if ($partial) { $this->coverage['files']=false; $this->limits[]='La revisión de archivos es parcial por permisos, tamaño o límite de análisis.'; }
+        $this->area='integrity';
         $manifest=$this->root.'/storage/audit-release-manifest.json';
         if (!is_file($manifest)) {
+            $this->coverage['integrity']=false;
             $this->limits[]='Para comparar huellas SHA-256, coloca el manifiesto oficial de esta edición y versión en storage/audit-release-manifest.json.';
             return;
         }
         try {
             $integrity=ReleaseIntegrity::compare($this->root,$manifest,41943040);
             foreach (array_merge($integrity['missing'],$integrity['changed']) as $relative) $this->add('Alto','Diferencia frente al paquete de referencia',$relative,'El archivo falta o su contenido difiere del manifiesto local.','Compara con el instalador oficial de la misma versión antes de restaurar el archivo.');
-            if ($integrity['skipped']) $this->limits[]='Se omitieron '.$integrity['skipped'].' archivos por el límite de integridad.';
+            if ($integrity['skipped']) { $this->coverage['integrity']=false; $this->limits[]='Se omitieron '.$integrity['skipped'].' archivos por el límite de integridad.'; }
         } catch (\RuntimeException | \JsonException) {
+            $this->coverage['integrity']=false;
             $this->limits[]='El manifiesto de integridad no se pudo validar para esta edición y versión.';
         }
     }
@@ -191,11 +201,13 @@ final class SecurityScanner
     {
         $configured=parse_url($this->siteUrl);
         if (!$configured || ($configured['scheme']??null)!=='https' || empty($configured['host'])) {
+            $this->coverage['headers']=false;
             $this->limits[]='No se hizo la consulta de cabeceras porque APP_URL no tiene HTTPS.';
             return;
         }
         $result=SafeHttp::publicResponseHeaders($this->siteUrl);
         if ($result['status']<200 || $result['status']>=300) {
+            $this->coverage['headers']=false;
             $this->limits[]='La portada respondió HTTP '.$result['status'].'. Las cabeceras de la página final requieren un control manual.';
             return;
         }
