@@ -1,6 +1,6 @@
 # GoldenSiteCMS Comercial
 
-Código de GoldenSiteCMS Comercial 1.0.35, con las mejoras acumuladas de esta edición.
+Código de GoldenSiteCMS Comercial 1.0.36, con las mejoras acumuladas de esta edición.
 
 ## Requisitos
 
@@ -32,6 +32,7 @@ La configuración de cada instalación se guarda en `.env` y los datos locales e
 ## Licencia
 
 Software propietario de GoldenSiteCMS. La disponibilidad del código en un repositorio no concede una licencia de distribución o de uso de módulos de pago.
+
 
 
 

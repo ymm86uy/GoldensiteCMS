@@ -11,3 +11,15 @@
 
 <section class="nx-panel" style="margin-top:24px"><div class="nx-panel-head"><h2>Icono global del sitio</h2><?= \App\Core\GoldensiteIcon::svg('themes') ?></div><form method="post" enctype="multipart/form-data" class="nx-panel-body nx-stack"><?= $csrf ?><input type="hidden" name="action" value="site_icon"><label>Imagen del icono<input name="site_icon_file" type="file" accept="image/png,image/jpeg,image/webp" required></label><p class="nx-note">PNG, JPEG o WebP de hasta 2 MB. Se genera una imagen PNG de 256 × 256 para las páginas públicas y administrativas; el navegador puede conservar el icono anterior hasta recargar.</p><button class="nx-btn">Guardar icono</button></form></section>
 <?php require __DIR__.'/external_import.php'; ?>
+<section class="nx-panel" id="pruebas-correo" style="margin-top:24px"><div class="nx-panel-head"><h2>Comprobaciones del correo</h2></div><div class="nx-panel-body nx-stack">
+<?php require __DIR__.'/mail_health.php'; ?>
+<?php if (\App\Core\IdentityAccess::superuser() && $mailDelivery && $mailDelivery['current'] && $mailDelivery['ok'] && $mailDelivery['confirmed_at']===null && time()-$mailDelivery['time']<=86400): ?>
+<form method="post" action="<?= $e(\App\Core\AdminPath::url('/admin/settings')) ?>" class="nx-stack">
+<?= $csrf ?><input type="hidden" name="action" value="confirm_smtp_receipt">
+<p>Después de recibir el mensaje, introduce la referencia que contiene y confirma con tu contraseña. Esta confirmación es manual y está disponible durante 24 horas.</p>
+<label>Referencia recibida<input name="mail_reference" required maxlength="8" pattern="[A-F0-9]{8}" autocomplete="off"></label>
+<label>Tu contraseña administrativa actual<input name="current_password" type="password" required maxlength="72" autocomplete="current-password"></label>
+<button class="nx-btn" type="submit">Confirmar que recibí esta prueba</button>
+</form>
+<?php endif ?>
+</div></section>

@@ -9,6 +9,7 @@ final class SettingsController
         if (isset($_GET['action'])) { RequestGuard::post(); $this->save(); return; }
         $settings=Settings::all(); $smtpConfigured=($settings['smtp_pass']??'')!==''; unset($settings['smtp_pass']);
         $externalPlan=null; $externalToken=$_SESSION['external_import_token']??''; if (is_string($externalToken)&&$externalToken!=='') { try { $externalPlan=\App\Core\CmsMigration::load($externalToken); } catch (\Throwable $e) { unset($_SESSION['external_import_token']); } }
+        $mailConnection=\App\Core\MailHealth::status('connection'); $mailDelivery=\App\Core\MailHealth::status('delivery');
         $status=$feedback??$_SESSION['settings_msg']??null; unset($_SESSION['settings_msg']);
         $appUrl=Environment::get('APP_URL'); $databaseVersion=Database::getInstance()->getConnection()->query('SELECT VERSION()')->fetchColumn();
         $title='Configuración del sistema · Goldensite'; $csrfToken=Csrf::generate();
@@ -20,6 +21,15 @@ final class SettingsController
         $action=$_GET['action']??$_POST['action']??'save';
         if (in_array($action,['export_db','restore','import_external_analyze','import_external_confirm'],true)&&!\App\Core\IdentityAccess::superuser()) { http_response_code(403); exit('La copia, restauración e importación externa requieren un administrador completo.'); }
         try {
+            if ($action==='confirm_smtp_receipt') {
+                if (!\App\Core\IdentityAccess::superuser()) { http_response_code(403); return; }
+                if (!\App\Core\RateLimiter::consume('smtp-receipt:'.Auth::id(),5,300)) throw new \InvalidArgumentException('Espera antes de repetir la confirmación.');
+                $this->verifyPassword();
+                \App\Core\MailHealth::confirm(\App\Core\ConsoleView::field($_POST,'mail_reference',8));
+                \App\Core\ConsoleView::audit('smtp_receipt_confirmed');
+                $_SESSION['settings_msg']=['type'=>'success','msg'=>'Recepción confirmada por el administrador para esta prueba.'];
+                header('Location: '.AdminPath::url('/admin/settings#correo'),true,303); return;
+            }
             if ($action==='test_smtp_delivery') {
                 if (!\App\Core\IdentityAccess::superuser()) { http_response_code(403); return; }
                 $recipient=Settings::get('admin_email');
@@ -27,6 +37,7 @@ final class SettingsController
                 if (!\App\Core\RateLimiter::consume('smtp-delivery-test',3,600)) throw new \InvalidArgumentException('Espera unos minutos antes de volver a enviar.');
                 $reference=strtoupper(bin2hex(random_bytes(4)));
                 $sent=MailTransport::send($recipient,'Prueba de entrega GoldenSiteCMS '.$reference,'Si recibiste este correo, la entrega funcionó. Referencia '.$reference.'.');
+                \App\Core\MailHealth::record('delivery',$sent,$reference);
                 $_SESSION['settings_msg']=$sent?['type'=>'success','msg'=>'El servidor SMTP aceptó el mensaje '.$reference.'. Confirma su llegada en el buzón administrativo.']:['type'=>'warning','msg'=>'El servidor SMTP no aceptó la prueba. Revisa las credenciales, el remitente y el registro del servidor.'];
                 header('Location: '.\App\Core\AdminPath::url('/admin/settings#correo'),true,303); return;
             }
@@ -58,7 +69,7 @@ final class SettingsController
             }
             if ($action==='probe_smtp') {
                 if (!\App\Core\RateLimiter::consume('smtp-probe:'.Auth::id(),3,300)) { $message='Configuración guardada. Espera unos minutos antes de repetir la comprobación SMTP.'; $type='warning'; }
-                else { try { MailTransport::probe(); $message='Conexión SMTP y TLS verificadas. No se envió ningún correo ni se comprobó la contraseña del proveedor.'; } catch (\Throwable $e) { $message='Configuración guardada. No se completó la conexión SMTP/TLS; revisa el servidor, puerto, DNS y certificado.'; $type='warning'; } }
+                else { try { MailTransport::probe(); \App\Core\MailHealth::record('connection',true); $message='Conexión SMTP y TLS verificadas. No se envió ningún correo ni se comprobó la contraseña del proveedor.'; } catch (\Throwable $e) { \App\Core\MailHealth::record('connection',false); $message='Configuración guardada. No se completó la conexión SMTP/TLS; revisa el servidor, puerto, DNS y certificado.'; $type='warning'; } }
             }
             $publication=$action==='save_publication';
             $_SESSION['settings_msg']=['type'=>$type,'msg'=>$message,'section'=>$publication?'seguridad':''];
@@ -73,3 +84,4 @@ final class SettingsController
         if (!is_string($password) || strlen($password)>72 || !$user || !password_verify($password,$user['password'])) throw new \InvalidArgumentException('Confirma tu contraseña actual para esta operación.');
     }
 }
+

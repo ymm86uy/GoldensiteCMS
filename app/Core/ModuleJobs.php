@@ -4,6 +4,18 @@ namespace App\Core;
 /** Private queue shared by newsletter and automation; no side effects during page requests. */
 final class ModuleJobs
 {
+    public static function health(array $rows,int $workerSeen,?int $now=null): array
+    {
+        $now??=time(); $due=$failed=$uncertain=0;
+        foreach ($rows as $row) {
+            if (in_array($row['state'],['queued','retry'],true)) $due+=(int)($row['due']??0);
+            if ($row['state']==='failed') $failed+=(int)$row['count'];
+            if ($row['state']==='uncertain') $uncertain+=(int)$row['count'];
+        }
+        $recent=$workerSeen>0 && $workerSeen<=$now && $now-$workerSeen<=900;
+        return ['due'=>$due,'failed'=>$failed,'uncertain'=>$uncertain,'worker_recent'=>$recent,
+            'ok'=>$failed===0 && $uncertain===0 && ($due===0 || $recent)];
+    }
     public static function enqueue(string $module,string $kind,string $key,array $payload,int $runAt=0,string $group=''): string
     {
         if (!in_array($kind,['automation','newsletter','newsletter_confirm','dating_confirm','password_reset','forum_notify','forum_mail'],true)) throw new \InvalidArgumentException('Tipo de tarea inválido.');

@@ -61,6 +61,10 @@ try { SafeArchive::apply($archive, $directory . '/extract'); verify(false, 'ZIP 
 session_write_close();
 
 $database = getenv('GOLDENSITE_TEST_DB');
+verify(App\Core\ModuleJobs::health([],0,1000)['ok'],'Una cola vacía no implica un trabajador averiado');
+verify(!App\Core\ModuleJobs::health([['state'=>'queued','count'=>2,'due'=>2]],1,1000)['ok'],'Tareas vencidas sin trabajador reciente requieren revisión');
+verify(App\Core\ModuleJobs::health([['state'=>'queued','count'=>2,'due'=>0]],0,1000)['ok'],'Tareas programadas a futuro no generan alerta de vencimiento');
+verify(!App\Core\ModuleJobs::health([['state'=>'uncertain','count'=>1,'due'=>0]],999,1000)['ok'],'Una tarea incierta exige revisión aunque el trabajador esté activo');
 $finding=['area'=>'headers','title'=>'Cabecera pendiente','location'=>'CSP','severity'=>'Alto','observed'=>true,'risk'=>'Prueba','fix'=>'Revisar'];
 $before=['findings'=>[$finding],'coverage'=>['headers'=>true]];
 $diff=Modules\GoldensiteSecurityAudit\AuditHistory::compare($before,null);
