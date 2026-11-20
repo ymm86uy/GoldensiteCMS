@@ -16,6 +16,7 @@ $installedVersion=\App\Core\ReleaseUpdate::version();
     <div class="nx-actions"><a class="nx-btn" href="/admin/settings">Configurar sistema</a><a class="nx-btn primary" href="/admin/pages">Crear contenido ↗</a></div>
 </div>
 <?php if ($status): ?><div class="nx-alert <?= $status['type']==='danger'?'error':'' ?>" role="status"><?= $e($status['msg']) ?></div><?php endif ?>
+<?php $integrityAction='/admin/dashboard'; require __DIR__.'/partials/release-integrity.php'; ?>
 <section class="nx-panel" style="margin-bottom:22px" aria-labelledby="gs-next-actions">
     <div class="nx-panel-head"><h2 id="gs-next-actions">Acciones pendientes</h2></div>
     <div class="nx-panel-body nx-stack">

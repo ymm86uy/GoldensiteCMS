@@ -10,24 +10,7 @@ $root=dirname(__DIR__);
 $file=$argv[2]??'';
 try {
     if (($argv[1]??'')==='manifest') {
-        $zip=new ZipArchive();
-        if (!is_file($file) || $zip->open($file)!==true || $zip->numFiles>10000) throw new RuntimeException('Instalador ZIP inválido.');
-        $edition=trim((string)$zip->getFromName('release-edition.txt'));
-        $version=trim((string)$zip->getFromName('release-version.txt'));
-        if (!in_array($edition,['owner','commercial'],true) || !preg_match('/^\d+\.\d+\.\d+$/D',$version)) throw new RuntimeException('El ZIP debe ser un instalador versionado.');
-        $files=[];
-        for ($i=0;$i<$zip->numFiles;$i++) {
-            $name=$zip->getNameIndex($i);
-            if (str_ends_with($name,'/') || !SafeArchive::pathAllowed($name)) continue;
-            $entry=$zip->statIndex($i);
-            if (isset($files[$name]) || $entry['size']>10485760) throw new RuntimeException('Entrada de instalador inválida.');
-            $contents=$zip->getFromIndex($i);
-            if (!is_string($contents) || strlen($contents)!==$entry['size']) throw new RuntimeException('Entrada incompleta.');
-            $files[$name]=hash('sha256',$contents);
-        }
-        $zip->close();
-        ksort($files,SORT_STRING);
-        echo json_encode(['edition'=>$edition,'version'=>$version,'files'=>$files],JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR).PHP_EOL;
+        echo json_encode(\App\Core\ReleaseIntegrity::archiveManifest($file),JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR).PHP_EOL;
         exit(0);
     }
     if (($argv[1]??'')!=='verify' || !is_file($file) || filesize($file)>2097152) throw new RuntimeException('Uso: php tools/release-integrity.php manifest <instalador.zip> | verify <manifiesto.json>');
@@ -40,7 +23,7 @@ try {
         foreach ($files as $entry) {
             if (!$entry->isFile()) continue;
             $path=str_replace('\\','/',substr($entry->getPathname(),strlen($root)+1));
-            if (SafeArchive::pathAllowed($path) && preg_match('/\.(?:php|sql|js|css)$/iD',$path) && !isset($expected[$path])) $extra[]=$path;
+            if (SafeArchive::pathAllowed($path) && preg_match('/\.(?:php|sql|js|css)$/iD',$path) && $path!==\App\Core\ReleaseIntegrity::REFERENCE && !isset($expected[$path])) $extra[]=$path;
         }
     }
     sort($extra,SORT_STRING);

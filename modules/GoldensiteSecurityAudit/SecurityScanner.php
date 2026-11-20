@@ -119,16 +119,17 @@ final class SecurityScanner
         if ($partial) { $this->coverage['files']=false; $this->limits[]='La revisión de archivos es parcial por permisos, tamaño o límite de análisis.'; }
         $this->area='integrity';
         $manifest=$this->root.'/storage/audit-release-manifest.json';
-        if (!is_file($manifest)) {
+        if (!is_file($manifest) && !is_file($this->root.'/'.ReleaseIntegrity::REFERENCE)) {
             $this->coverage['integrity']=false;
             $this->limits[]='Para comparar huellas SHA-256, coloca el manifiesto oficial de esta edición y versión en storage/audit-release-manifest.json.';
             return;
         }
         try {
-            $integrity=ReleaseIntegrity::compare($this->root,$manifest,41943040);
-            foreach (array_merge($integrity['missing'],$integrity['changed']) as $relative) $this->add('Alto','Diferencia frente al paquete de referencia',$relative,'El archivo falta o su contenido difiere del manifiesto local.','Compara con el instalador oficial de la misma versión antes de restaurar el archivo.');
+            $integrity=is_file($this->root.'/'.ReleaseIntegrity::REFERENCE)
+                ?ReleaseIntegrity::compareOfficial($this->root,41943040):ReleaseIntegrity::compare($this->root,$manifest,41943040);
+            foreach (array_merge($integrity['missing'],$integrity['changed']) as $relative) $this->add('Alto','Diferencia frente al paquete de referencia',$relative,'El archivo falta o su contenido difiere de la referencia de esta versión.','Compara con el instalador oficial de la misma versión antes de restaurar el archivo.');
             if ($integrity['skipped']) { $this->coverage['integrity']=false; $this->limits[]='Se omitieron '.$integrity['skipped'].' archivos por el límite de integridad.'; }
-        } catch (\RuntimeException | \JsonException) {
+        } catch (\RuntimeException | \InvalidArgumentException | \JsonException) {
             $this->coverage['integrity']=false;
             $this->limits[]='El manifiesto de integridad no se pudo validar para esta edición y versión.';
         }

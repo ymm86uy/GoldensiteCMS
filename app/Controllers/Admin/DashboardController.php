@@ -14,7 +14,8 @@ final class DashboardController
         if ($_SERVER['REQUEST_METHOD']==='POST') {
             RequestGuard::post();
             try {
-                if (($_POST['action']??'')==='clear_cache') { $count=CacheStore::clear(); $msg="Caché limpiada: $count archivos."; }
+                if (($_POST['action']??'')==='check_integrity') { \App\Core\ReleaseIntegrity::checkRequest(); $msg='Comprobación de integridad finalizada. Consulta el resultado y su fecha.'; }
+                elseif (($_POST['action']??'')==='clear_cache') { $count=CacheStore::clear(); $msg="Caché limpiada: $count archivos."; }
                 elseif (($_POST['action']??'')==='revoke_session') {
                     $hash=$_POST['session_hash']??'';
                     if (!is_string($hash) || !preg_match('/^[a-f0-9]{64}$/D',$hash)) throw new \InvalidArgumentException('Sesión inválida.');
@@ -30,6 +31,7 @@ final class DashboardController
                 } else throw new \InvalidArgumentException('Acción desconocida.');
                 $_SESSION['dashboard_msg']=['type'=>'success','msg'=>$msg]; header('Location: /admin/dashboard'); return;
             } catch (\InvalidArgumentException $e) { http_response_code(422); $status=['type'=>'danger','msg'=>$e->getMessage()]; }
+            catch (\RuntimeException $e) { error_log('Dashboard operation failed: '.$e->getMessage()); http_response_code(503); $status=['type'=>'danger','msg'=>'No se pudo completar la operación. Revisa la disponibilidad de la referencia oficial y el registro del servidor.']; }
         }
         $summary=DashboardData::summary();
         if (($_GET['api']??'')==='summary') { header('Content-Type: application/json; charset=utf-8'); echo json_encode($summary,JSON_THROW_ON_ERROR); return; }

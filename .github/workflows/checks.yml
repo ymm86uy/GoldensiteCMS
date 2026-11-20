@@ -90,3 +90,16 @@ jobs:
 
 
 
+      - name: Comprobar referencia firmada e integridad en instalación de CI
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASS: ci-only-password
+          GOLDENSITE_TEST_DB: goldensite_test_ci_integrity
+          GOLDENSITE_TEST_RELEASE_INTEGRITY: '1'
+          GOLDENSITE_TEST_INTEGRITY_REPACKED: '1'
+          GOLDENSITE_INSTALL_TEST_PORT: '18087'
+        run: |
+          php -r '$db=new PDO("mysql:host=127.0.0.1;dbname=goldensite_test_ci","root",getenv("DB_PASS")); $db->exec("CREATE DATABASE goldensite_test_ci_integrity CHARACTER SET utf8mb4");'
+          php tests/install.php "$RUNNER_TEMP/commercial.zip"

@@ -170,6 +170,10 @@ try {
         else $db->prepare("UPDATE goldensite_module_offers SET tier=? WHERE module_id='release-backup'")->execute([$previousTier]);
         installRequest('/logout',['csrf_token'=>$token]);
     }
+    if (getenv('GOLDENSITE_TEST_RELEASE_INTEGRITY')==='1') {
+        require __DIR__.'/release-integrity.php';
+        return;
+    }
     if (getenv('GOLDENSITE_TEST_CHAT_CONSOLIDATION')==='1') {
         require __DIR__.'/chat-consolidation.php';
         return;

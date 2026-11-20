@@ -27,6 +27,11 @@ class ReleaseBackupController
         $errorMessage = $_SESSION['release_error'] ?? null;
         unset($_SESSION['release_msg'], $_SESSION['release_error']);
         $canInstall = IdentityAccess::superuser();
+        if (($_SERVER['REQUEST_METHOD']??'GET')==='POST' && ($_POST['action']??'')==='check_integrity') {
+            try { \App\Core\ReleaseIntegrity::checkRequest(); $msg='Comprobación de integridad finalizada. Consulta el resultado y su fecha.'; }
+            catch (\InvalidArgumentException $e) { http_response_code(422); $errorMessage=$e->getMessage(); }
+            catch (\RuntimeException $e) { error_log('Release integrity failed: '.$e->getMessage()); http_response_code(503); $errorMessage='No se pudo completar la comprobación. Revisa la referencia oficial y el registro del servidor.'; }
+        }
 
         $title = "Goldensite Release Manager & Advanced Backup PRO";
         $csrfToken = Csrf::generate();
@@ -75,6 +80,7 @@ class ReleaseBackupController
                 <p style="color: #94a3b8; font-size: 0.95rem; margin-top: 0.25rem;">Control de versiones de despliegues, respaldos de código y base de datos, y preparación de actualizaciones oficiales.</p>
             </div>
 
+            <?php $integrityAction='/admin/backups'; require dirname(__DIR__,3).'/views/admin/partials/release-integrity.php'; ?>
             <?php if ($msg): ?>
                 <div style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #4ade80; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; font-weight: 500;">
                     <?= htmlspecialchars($msg) ?>
