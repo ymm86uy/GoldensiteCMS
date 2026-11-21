@@ -11,6 +11,7 @@ try {
     $db->exec('DELETE FROM goldensite_password_resets WHERE expires_at <= UNIX_TIMESTAMP()');
     $db->exec("DELETE FROM goldensite_module_jobs WHERE kind='password_reset' AND state<>'processing' AND created_at<DATE_SUB(NOW(),INTERVAL 2 DAY)");
     $db->exec('DELETE FROM goldensite_revoked_sessions WHERE expires_at <= NOW()');
+    \App\Security\CspReports::prune();
     if (class_exists(\Modules\GoldensiteSocial\Store::class)) \Modules\GoldensiteSocial\Store::prune();
     $published=\App\Core\EditorialWorkflow::publishDue();
     if ($published>0) echo "Publicaciones programadas completadas: $published.\n";

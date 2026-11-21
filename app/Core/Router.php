@@ -76,6 +76,7 @@ class Router
         }
         if (!in_array(strtoupper($method), ['GET', 'HEAD', 'OPTIONS'], true)) {
             if (!(strtoupper($method)==='POST' && $parsedUrl==='/login/saml/acs')
+                && !(strtoupper($method)==='POST' && $parsedUrl===\App\Security\CspReports::PATH)
                 && !\App\Controllers\ScimController::isWriteRoute($method,(string)$parsedUrl)) {
                 RequestGuard::csrf();
             }

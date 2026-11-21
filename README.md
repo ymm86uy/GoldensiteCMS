@@ -1,6 +1,6 @@
 # GoldenSiteCMS Comercial
 
-Código de GoldenSiteCMS Comercial 1.0.38, con las mejoras acumuladas de esta edición.
+Código de GoldenSiteCMS Comercial 1.0.39, con las mejoras acumuladas de esta edición.
 
 ## Requisitos
 

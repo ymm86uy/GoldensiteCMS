@@ -4,6 +4,8 @@ use App\Core\{AdminPath,Auth,Csrf,Database,LicenseService,RequestGuard,Settings}
 use App\Security\{Clamd,HeuristicAntivirus,IpRange,UploadAntivirus,WafAccess,WafCustomRules,WafGateway,WafPolicy};
 final class WafController
 {
+    public function cspReport(): void { \App\Security\CspReports::receive(); }
+
     public function index(): void
     {
         Auth::requireAdmin(); $db=Database::getInstance(); $status=null; $scanResult=null;
@@ -17,7 +19,16 @@ final class WafController
             RequestGuard::post();
             try {
                 $action=LicenseService::field($_POST,'action',30);
-                if ($action==='save_policy') {
+                if ($action==='save_csp_observation') {
+                    if (!\App\Core\IdentityAccess::superuser()) { http_response_code(403); return; }
+                    if (!\App\Core\RateLimiter::consume('csp-observation-settings:'.Auth::id(),5,900)) throw new \InvalidArgumentException('Espera antes de volver a cambiar la observación CSP.');
+                    \App\Core\ConsoleView::password();
+                    $enabled=($_POST['csp_observe']??'')==='1';
+                    if ($enabled && \App\Security\CspReports::siteOrigin()===null) throw new \InvalidArgumentException('Configura APP_URL con el origen público del sitio antes de habilitar informes.');
+                    Settings::set('csp_observe',$enabled?'1':'0');
+                    ActivityLogController::log('csp_observation_changed',$enabled?'Observación activada.':'Observación desactivada.');
+                    $message='Observación CSP '.($enabled?'activada.':'desactivada.');
+                } elseif ($action==='save_policy') {
                     $mode=LicenseService::field($_POST,'waf_mode',10); $limit=LicenseService::field($_POST,'waf_request_limit',4); $retention=LicenseService::field($_POST,'waf_retention_days',2);
                     if (!in_array($mode,['block','monitor'],true) || !ctype_digit($limit) || (int)$limit<60 || (int)$limit>2000 || !ctype_digit($retention) || (int)$retention<7 || (int)$retention>90) throw new \InvalidArgumentException('Revisa el modo, el límite de 60 a 2000 solicitudes y la retención de 7 a 90 días.');
                     Settings::writeMany(['waf_mode'=>$mode,'waf_request_limit'=>$limit,'waf_retention_days'=>$retention]); $message='Política de seguridad guardada y aplicada.';

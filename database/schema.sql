@@ -1278,6 +1278,15 @@ CREATE TABLE IF NOT EXISTS goldensite_community_profiles (
  history_mode ENUM('public','member','off') NOT NULL DEFAULT 'off',
  fields_json TEXT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS goldensite_csp_reports (
+ report_day DATE NOT NULL,
+ area VARCHAR(12) NOT NULL,
+ directive VARCHAR(24) NOT NULL,
+ blocked_kind VARCHAR(12) NOT NULL,
+ events INT UNSIGNED NOT NULL DEFAULT 1,
+ last_seen DATETIME NOT NULL,
+ PRIMARY KEY (report_day,area,directive,blocked_kind)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS goldensite_forum_categories (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

@@ -1,6 +1,7 @@
 <?php $e=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); $csrf='<input type="hidden" name="csrf_token" value="'.$e($csrfToken).'">'; $query=http_build_query(['rule'=>$filter,'disposition'=>$disposition]); ?>
 <div class="nx-page-head"><div><div class="nx-kicker">GOLDENSITE / CENTRO DE SEGURIDAD</div><h1>WAF y análisis de archivos</h1><p>Consulta los bloqueos, revisa las direcciones restringidas y verifica la protección de las cargas.</p></div><span class="nx-pill <?= $config['mode']==='block'?'good':'warn' ?>"><?= $config['mode']==='block'?'● BLOQUEO ACTIVO':'● MODO OBSERVACIÓN' ?></span></div>
 <nav class="nx-actions" aria-label="Secciones del WAF" style="flex-wrap:wrap;margin-bottom:18px">
+    <a class="nx-btn small" href="#gs-csp-observation">Observación CSP</a>
     <a class="nx-btn small" href="#nx-policy">Política del WAF</a>
     <a class="nx-btn small" href="#gs-geo-title">Mapa de actividad</a>
     <a class="nx-btn small" href="#nx-access">Reglas de acceso</a>
@@ -8,6 +9,8 @@
     <a class="nx-btn small" href="#nx-custom-rules">Reglas manuales</a>
     <a class="nx-btn small" href="#nx-antivirus">Análisis de archivos</a>
 </nav>
+<?php require __DIR__.'/partials/csp-observation.php'; ?>
+
 <?php if ($status): ?><div class="nx-alert <?= $status['type']==='danger'?'error':'' ?>" role="status"><?= $e($status['msg']) ?></div><?php endif ?>
 <?php $isWafMap=true; require __DIR__.'/geo_map.php'; ?>
 <section class="nx-hero" style="background:#8c8dff;color:#111329;min-height:150px"><div><div style="font:10px Consolas;letter-spacing:2px">APPLICATION DEFENSE / <?= $e(\App\Security\WafPolicy::VERSION) ?></div><h2>Decisiones verificables.<br>Protección en cada solicitud.</h2><p>Ruta, método, parámetros, límites y reglas de acceso. Los editores autenticados pueden guardar contenido legítimo sin bloquear sus propios ejemplos de código.</p></div><div class="nx-orbit"></div><div class="nx-hero-note"><?= count(\App\Security\WafPolicy::rules()) ?> REGLAS IDENTIFICADAS<br><strong style="font-size:14px;display:block;margin-top:7px">GOLDENSITE DEFENSE</strong></div></section>

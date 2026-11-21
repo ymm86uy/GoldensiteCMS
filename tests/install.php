@@ -39,13 +39,13 @@ if (!is_resource($server)) throw new RuntimeException('No se pudo iniciar el ser
 fclose($pipes[0]);
 $checks = 0;
 function checkInstall(bool $condition, string $label): void { global $checks; $checks++; if (!$condition) throw new RuntimeException($label); }
-function installRequest(string $path, ?array $form = null, array $headers = [], bool $multipart = false): array {
+function installRequest(string $path, array|string|null $form = null, array $headers = [], bool $multipart = false): array {
     global $cookie, $fixtureOrigin;
     $curl = curl_init($fixtureOrigin . $path);
     curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_COOKIEFILE => $cookie, CURLOPT_COOKIEJAR => $cookie, CURLOPT_TIMEOUT => 135]);
     foreach ($headers as $index=>$header) if (stripos($header,'Cookie: ')===0) { curl_setopt($curl,CURLOPT_COOKIE,substr($header,8)); unset($headers[$index]); }
     if ($headers) curl_setopt($curl, CURLOPT_HTTPHEADER, array_values($headers));
-    if ($form !== null) curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $multipart?$form:http_build_query($form)]);
+    if ($form !== null) curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $multipart||is_string($form)?$form:http_build_query($form)]);
     $response = curl_exec($curl);
     $size = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
     $result = ['status' => curl_getinfo($curl, CURLINFO_HTTP_CODE), 'headers' => substr((string) $response, 0, $size), 'body' => substr((string) $response, $size)];
@@ -169,6 +169,10 @@ try {
         if ($previousTier === false) $db->exec("DELETE FROM goldensite_module_offers WHERE module_id='release-backup'");
         else $db->prepare("UPDATE goldensite_module_offers SET tier=? WHERE module_id='release-backup'")->execute([$previousTier]);
         installRequest('/logout',['csrf_token'=>$token]);
+    }
+    if (getenv('GOLDENSITE_TEST_CSP_REPORTS')==='1') {
+        require __DIR__.'/csp-reports.php';
+        return;
     }
     if (getenv('GOLDENSITE_TEST_RELEASE_INTEGRITY')==='1') {
         require __DIR__.'/release-integrity.php';

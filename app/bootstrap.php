@@ -28,6 +28,7 @@ if (PHP_SAPI !== 'cli') {
     header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
     // Keep existing inline and HTTPS integrations while restricting plugins, framing and script evaluation.
     header("Content-Security-Policy: script-src 'self' https: 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'");
+    if (\App\Core\Installer::installed()) \App\Security\CspReports::headers();
     if (in_array(strtolower((string) ($_SERVER['HTTPS'] ?? '')), ['on', '1'], true)
         || ($_SERVER['REQUEST_SCHEME'] ?? '') === 'https') {
         header('Strict-Transport-Security: max-age=31536000');

@@ -19,6 +19,7 @@ use App\Controllers\Admin\AppBuilderController;
 use App\Controllers\Admin\ActivityLogController;
 
 $router = Router::getInstance();
+$router->post(\App\Security\CspReports::PATH,[WafController::class,'cspReport']);
 
 $router->get('/login', [AuthController::class, 'showLogin']);
 $router->post('/login', [AuthController::class, 'login']);
