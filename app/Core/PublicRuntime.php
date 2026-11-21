@@ -46,7 +46,8 @@ final class PublicRuntime
                     $metadata='<meta property="og:title" content="'.$titleHtml.'">'; if ($description!=='') $metadata.='<meta name="description" content="'.ConsoleView::escape($description).'"><meta property="og:description" content="'.ConsoleView::escape($description).'">';
                     if (($position=stripos($body,'</head>'))!==false) { $head=substr($body,0,$position); $head=preg_replace('~<meta\b(?=[^>]*(?:name|property)\s*=\s*["\x27](?:description|og:title|og:description)["\x27])[^>]*>~i','',$head); $body=$head.$metadata.substr($body,$position); }
                 }
-                $head=stripos($body,'</head>'); if ($head!==false) $body=substr_replace($body,Typography::style(false,$page?:null).SiteIcon::head(),$head,0);
+                $typography=$page?:($path==='/'?CompositionStudio::publishedTypography():null);
+                $head=stripos($body,'</head>'); if ($head!==false) $body=substr_replace($body,Typography::style(false,$typography).SiteIcon::head(),$head,0);
                 $body=preg_replace_callback('/<body\b([^>]*)>/i',static function($m) { return preg_match('/class=["\']/i',$m[1])?preg_replace('/class=(["\'])/i','class=$1nx-public ',$m[0],1):'<body class="nx-public"'.$m[1].'>'; },$body,1);
                 if (stripos($body,'</body>')!==false) $body=str_ireplace('</body>',FrontendRuntime::cookieFooter().'<div style="padding:20px;display:flex;justify-content:center">'.Locale::selector().'</div></body>',$body);
                 $body=Locale::html($body);

@@ -1070,6 +1070,7 @@ CREATE TABLE IF NOT EXISTS goldensite_ticket_history (
 CREATE TABLE IF NOT EXISTS goldensite_builder_versions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     html_code LONGTEXT NOT NULL,
+    composition_json TEXT NULL,
     created_by INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

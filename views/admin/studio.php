@@ -1,15 +1,15 @@
-<link rel="stylesheet" href="/assets/admin/studio.css">
+<link rel="stylesheet" href="/assets/admin/studio.css?v=<?= $e(\App\Core\ReleaseUpdate::version()) ?>">
 <div class="nx-studio">
 <header class="nx-page-head">
 <div><div class="nx-kicker">GOLDENSITE / ESTUDIO DE COMPOSICIÓN</div><h1>Diseña tu portada</h1><p>Compón el contenido, comprueba el diseño y controla cuándo sale a producción.</p></div>
-<div class="nx-actions"><span class="nx-pill <?= $active?'good':'' ?>"><?= $active?'Portada compuesta activa':'Portada del tema' ?></span><a href="/" class="nx-btn" target="_blank" rel="noopener">Ver portada pública ↗</a></div>
+<div class="nx-actions"><?php if (\App\Core\ProductEdition::current()==="commercial"): ?><a class="nx-btn" href="<?= $e($base) ?>">Crear mi sitio ↗</a><?php endif ?><span class="nx-pill <?= $active?'good':'' ?>"><?= $active?'Portada compuesta activa':'Portada del tema' ?></span><a href="/" class="nx-btn" target="_blank" rel="noopener">Ver portada pública ↗</a></div>
 </header>
 <nav class="nx-studio-steps" aria-label="Etapas del diseño"><a href="#studio-compose">01 · Componer</a><a href="#studio-review">02 · Revisar y guardar</a><a href="#studio-history">03 · Publicar y recuperar</a></nav>
 <?php if ($status): ?><p class="nx-alert" role="status"><?= $e($status) ?></p><?php endif; ?>
 <div class="nx-studio-workspace" id="studio-compose">
 <section class="nx-panel"><div class="nx-panel-head"><h2>Contenido y estilo</h2><?= \App\Core\GoldensiteIcon::svg('ai-builder') ?></div>
 <form method="post" action="<?= $e($base) ?>" class="nx-panel-body nx-stack">
-<input type="hidden" name="csrf_token" value="<?= $e($csrfToken) ?>"><input type="hidden" name="revision" value="<?= $e($revision) ?>">
+<input type="hidden" name="csrf_token" value="<?= $e($csrfToken) ?>"><input type="hidden" name="editor_mode" value="advanced"><input type="hidden" name="revision" value="<?= $e($revision) ?>">
 <label>Estilo<select name="template"><?php foreach (['studio'=>'Studio · geometría','editorial'=>'Editorial · lectura','product'=>'Product · escaparate','theme'=>'Tema activo del sitio'] as $key=>$label): ?><option value="<?= $key ?>" <?= ($spec['template']??'')===$key?'selected':'' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
 <label>Nombre de la marca<input name="name" maxlength="100" required value="<?= $e($spec['name']??'') ?>"></label>
 <label>Texto sobre el título<input name="eyebrow" maxlength="80" value="<?= $e($spec['eyebrow']??'') ?>"></label>
@@ -37,23 +37,10 @@
 </div>
 <section class="nx-panel" id="studio-review"><div class="nx-panel-head"><h2>Editor del borrador</h2><span class="nx-pill">HTML · UTF-8</span></div>
 <form method="post" action="<?= $e($base) ?>" class="nx-panel-body nx-stack">
-<input type="hidden" name="csrf_token" value="<?= $e($csrfToken) ?>"><input type="hidden" name="revision" value="<?= $e($revision) ?>">
+<input type="hidden" name="csrf_token" value="<?= $e($csrfToken) ?>"><input type="hidden" name="editor_mode" value="advanced"><input type="hidden" name="revision" value="<?= $e($revision) ?>">
 <label>Documento HTML<textarea id="nx-studio-code" class="nx-code" name="html_code" maxlength="1048576" rows="18" spellcheck="false"><?= $e($html) ?></textarea></label>
 <div class="nx-actions"><button type="button" class="nx-btn" id="nx-studio-update">Actualizar vista previa</button><button class="nx-btn" name="action" value="save_draft">Guardar borrador</button></div>
 <?php if ($canPublish): ?><fieldset class="nx-studio-publish" id="studio-history"><legend>Publicar portada</legend><p class="nx-note">La publicación restringida bloquea scripts incrustados y externos. Activa el modo avanzado solo para código de confianza.</p><label><input type="checkbox" name="trusted_scripts" value="1"> Permitir scripts en esta publicación (modo avanzado)</label><label>Contraseña administrativa actual<input type="password" name="current_password" maxlength="72" autocomplete="current-password"></label><button class="nx-btn primary" name="action" value="publish_layout">Publicar portada</button></fieldset><?php endif; ?>
 </form></section>
-<section class="nx-panel" <?= $canPublish?'':'id="studio-history"' ?>><div class="nx-panel-head"><h2>Historial de portadas</h2><span class="nx-pill"><?= count($versions) ?> recientes</span></div>
-<div class="nx-panel-body nx-stack">
-<?php if ($active && $canPublish): ?><form method="post" action="<?= $e($base) ?>" class="nx-actions">
-<input type="hidden" name="csrf_token" value="<?= $e($csrfToken) ?>"><input type="hidden" name="revision" value="<?= $e($revision) ?>">
-<label>Contraseña actual<input type="password" name="current_password" maxlength="72" autocomplete="current-password" required></label>
-<button class="nx-btn" name="action" value="disable_ai_frontend">Volver a la portada del tema</button>
-</form><?php endif; ?>
-<?php foreach ($versions as $version): ?><details><summary>Versión #<?= (int)$version['id'] ?> · <?= $e($version['created_at']) ?> · <?= $e($version['username']??'Cuenta retirada') ?></summary>
-<form method="post" action="<?= $e($base) ?>" class="nx-actions nx-studio-extra">
-<input type="hidden" name="csrf_token" value="<?= $e($csrfToken) ?>"><input type="hidden" name="revision" value="<?= $e($revision) ?>"><input type="hidden" name="version_id" value="<?= (int)$version['id'] ?>">
-<label>Contraseña actual<input type="password" name="current_password" maxlength="72" autocomplete="current-password" required></label><button class="nx-btn small" name="action" value="restore_version">Recuperar como borrador</button>
-</form></details><?php endforeach; ?>
-<?php if (!$versions): ?><p class="nx-note">Las portadas reemplazadas aparecerán aquí.</p><?php endif; ?>
-</div></section>
-</div><script src="/assets/admin/studio.js" defer></script>
+<?php require __DIR__.'/partials/studio-history.php'; ?>
+</div><script src="/assets/admin/studio.js?v=<?= $e(\App\Core\ReleaseUpdate::version()) ?>" defer></script>

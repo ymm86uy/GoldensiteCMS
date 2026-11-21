@@ -1,0 +1,82 @@
+<?php
+checkInstall(installRequest('/admin/ai-builder')['status']===302,'El estudio se abrió sin sesión.');
+checkInstall(installRequest('/login',['csrf_token'=>installCsrf(installRequest('/login')),'email'=>'owner@example.test','password'=>$password])['status']===302,'No se pudo acceder al estudio.');
+function studioForm(array $extra=[]): array {
+    $page=installRequest('/admin/ai-builder');
+    if(!preg_match('/name="revision" value="([a-f0-9]{64})"/',$page['body'],$m))throw new RuntimeException('Falta revisión del estudio.');
+    return array_merge(App\Core\CompositionStudio::defaults(),['csrf_token'=>installCsrf($page),'revision'=>$m[1]],$extra);
+}
+$screen=installRequest('/admin/ai-builder');
+checkInstall($screen['status']===200 && str_contains($screen['body'],'data-guided-studio') && str_contains($screen['body'],'sandbox=""'),'No aparece el estudio guiado aislado.');
+checkInstall(str_contains(installRequest('/admin/ai-builder?mode=advanced')['body'],'Documento HTML'),'Se perdió el editor avanzado.');
+$form=studioForm(['action'=>'preview_guided','name'=>'Estudio de prueba','headline'=>'Ideas que dejan huella.','font'=>'editorial','about_text'=>"Primera línea.\nSegunda línea."]);
+$preview=installRequest('/admin/ai-builder',$form);$data=json_decode($preview['body'],true);
+checkInstall($preview['status']===200 && str_contains($data['html']??'','Ideas que dejan huella.') && str_contains($data['html'],'gs-agency'),'La vista previa no renderiza el diseño.');
+checkInstall(!$db->query("SELECT setting_value FROM settings WHERE setting_key='custom_ai_frontend'")->fetchColumn(),'La vista previa publicó contenido.');
+checkInstall(installRequest('/admin/ai-builder',array_diff_key($form,['csrf_token'=>true]))['status']===403,'Se omitió CSRF en la vista previa.');
+checkInstall(installRequest('/admin/ai-builder',array_merge($form,['sections'=>['about','about']]))['status']===422,'Se admiten secciones duplicadas.');
+checkInstall(installRequest('/admin/ai-builder',array_merge($form,['headline'=>'<b>injected</b>']))['status']===422,'Se permite HTML en texto guiado.');
+checkInstall(installRequest('/admin/ai-builder',array_merge($form,['image'=>'https://outside.example/photo.jpg']))['status']===422,'Se permite una imagen externa.');
+checkInstall(in_array(installRequest('/admin/ai-builder',array_merge($form,['image'=>'/uploads/../../private.jpg']))['status'],[403,422],true),'Se permite recorrer directorios.');
+checkInstall(in_array(installRequest('/admin/ai-builder',array_merge($form,['url'=>'javascript:alert(1)']))['status'],[403,422],true),'Se permite un destino ejecutable.');
+checkInstall(installRequest('/admin/ai-builder',array_merge($form,['form_id'=>'999999']))['status']===422,'Se permite un formulario inexistente o inactivo.');
+$legacy='<!doctype html><html><head><title>Legacy fixture</title></head><body><h1>Portada anterior conservada</h1></body></html>';
+checkInstall(installRequest('/admin/ai-builder',studioForm(['action'=>'publish_layout','html_code'=>$legacy,'current_password'=>$password]))['status']===302,'No funciona la publicación anterior.');
+checkInstall(installRequest('/admin/ai-builder',studioForm(array_merge($form,['action'=>'save_guided'])))['status']===422,'Se sustituye un borrador avanzado sin confirmar.');
+$draft=studioForm(array_merge($form,['action'=>'save_guided','replace_draft'=>'1']));unset($draft['revision']);$draft=studioForm($draft);
+checkInstall(installRequest('/admin/ai-builder',$draft)['status']===302,'No se guarda el borrador guiado.');
+checkInstall($db->query("SELECT setting_value FROM settings WHERE setting_key='custom_ai_frontend'")->fetchColumn()===$legacy,'Guardar borrador altera la portada vigente.');
+$png=$fixture.'/storage/studio-fixture.png';$image=imagecreatetruecolor(12,12);imagepng($image,$png);imagedestroy($image);
+$upload=installRequest('/admin/ai-builder',['csrf_token'=>$draft['csrf_token'],'action'=>'upload_image','studio_image'=>new CURLFile($png,'image/png','picture.png')],[],true);
+$uploaded=json_decode($upload['body'],true)['url']??'';
+checkInstall($upload['status']===200 && preg_match('~^/uploads/[a-f0-9]{32}\.png$~D',$uploaded)===1 && is_file($fixture.'/public'.$uploaded),'La imagen no utiliza la carga nativa.');
+checkInstall(installRequest('/admin/ai-builder',studioForm(array_merge($form,['image'=>$uploaded,'image_alt'=>''])))['status']===422,'La imagen permite omitir su descripción.');
+$guided=array_merge($form,['action'=>'publish_guided','image'=>$uploaded,'logo'=>$uploaded,'image_alt'=>'Imagen de prueba','sections'=>['about','services','contact'],'replace_draft'=>'1','trusted_scripts'=>'1']);unset($guided['revision']);
+checkInstall(installRequest('/admin/ai-builder',array_diff_key(studioForm(array_merge($guided,['action'=>'save_guided'])),['revision'=>true]))['status']===422,'El guardado guiado permite omitir revisión.');
+checkInstall(installRequest('/admin/ai-builder',studioForm(array_merge($guided,['current_password'=>'wrong'])))['status']===422,'Se publica sin confirmar la contraseña.');
+$publication=studioForm(array_merge($guided,['current_password'=>$password]));
+checkInstall(installRequest('/admin/ai-builder',$publication)['status']===302,'No se publica el sitio guiado.');
+$published=$db->query("SELECT setting_value FROM settings WHERE setting_key='custom_ai_frontend'")->fetchColumn();
+checkInstall(str_contains($published,'Ideas que dejan huella.') && strpos($published,'id="about"')<strpos($published,'id="services"'),'Se perdió el contenido u orden de secciones.');
+checkInstall(str_contains($published,'class="gs-brand-logo"'),'No se conserva el logotipo de la biblioteca.');
+checkInstall($db->query("SELECT setting_value FROM settings WHERE setting_key='builder_content_policy'")->fetchColumn()==='restricted','El modo guiado permitió scripts de confianza.');
+$public=installRequest('/');
+checkInstall(str_contains($public['headers'],"script-src 'self';") && str_contains(html_entity_decode($public['body'],ENT_QUOTES|ENT_HTML5,'UTF-8'),'Ideas que dejan huella.'),'La publicación no mantiene la política restringida.');
+$db->prepare("INSERT INTO settings (setting_key,setting_value) VALUES ('site_typography',?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)")->execute(['{"font":"rounded","size":16,"heading":40}']);
+checkInstall(str_contains(installRequest('/')['body'],'--nx-heading-size:80'),'La tipografía global sustituye al diseño publicado.');
+$draft2=studioForm(array_merge($guided,['action'=>'save_guided','headline'=>'Otro borrador','font'=>'system']));
+checkInstall(installRequest('/admin/ai-builder',$draft2)['status']===302 && str_contains(installRequest('/')['body'],'--nx-heading-size:80'),'El borrador altera la apariencia publicada.');
+checkInstall(installRequest('/admin/ai-builder',$publication)['status']===422,'Se permite sobrescribir una revisión obsoleta.');
+checkInstall(installRequest('/admin/ai-builder',studioForm(array_merge($guided,['headline'=>'Segundo diseño','font'=>'system','current_password'=>$password])))['status']===302,'No se publica una segunda versión.');
+$version=$db->query("SELECT id FROM goldensite_builder_versions WHERE html_code LIKE '%Ideas que dejan huella.%' ORDER BY id DESC LIMIT 1")->fetchColumn();
+checkInstall((int)$version>0,'No se conservó la versión anterior.');
+checkInstall(installRequest('/admin/ai-builder',studioForm(['action'=>'restore_version','version_id'=>$version,'current_password'=>$password]))['status']===302,'No se recupera el diseño como borrador.');
+$spec=json_decode($db->query("SELECT setting_value FROM settings WHERE setting_key='builder_draft_spec'")->fetchColumn(),true);
+checkInstall(($spec['font']??'')==='editorial' && ($spec['sections'][0]??'')==='about','La recuperación pierde los campos visuales.');
+checkInstall(str_contains($db->query("SELECT setting_value FROM settings WHERE setting_key='custom_ai_frontend'")->fetchColumn(),'Segundo diseño'),'Recuperar el borrador cambia la portada publicada.');
+$legacyVersion=$db->query("SELECT id FROM goldensite_builder_versions WHERE html_code LIKE '%Portada anterior conservada%' LIMIT 1")->fetchColumn();
+checkInstall(installRequest('/admin/ai-builder',studioForm(['action'=>'restore_version','version_id'=>$legacyVersion,'current_password'=>$password]))['status']===302,'No se recupera un historial previo sin metadatos.');
+checkInstall($db->query("SELECT setting_value FROM settings WHERE setting_key='builder_draft_html'")->fetchColumn()===$legacy,'Se alteró el HTML anterior al recuperarlo.');
+// Reuse the real form module and its per-visitor tokens; never persist an administrator's token.
+installRequest('/admin/plugins',['csrf_token'=>$form['csrf_token'],'action_toggle_module'=>'1','module_id'=>'form-builder','toggle_state'=>'1']);
+checkInstall(installRequest('/admin/form-builder',['csrf_token'=>$form['csrf_token'],'name'=>'Studio contact','slug'=>'studio-contact','success_message'=>'Recibido','schema_json'=>'[{"id":"name","label":"Nombre","type":"text","required":true}]','is_active'=>'1'])['status']===302,'No se creó el formulario nativo.');
+$formId=$db->query("SELECT id FROM goldensite_forms WHERE slug='studio-contact'")->fetchColumn();
+checkInstall(installRequest('/admin/ai-builder',studioForm(array_merge($guided,['form_id'=>(string)$formId,'current_password'=>$password])))['status']===302,'No se publica el formulario existente.');
+$stored=$db->query("SELECT setting_value FROM settings WHERE setting_key='custom_ai_frontend'")->fetchColumn();
+checkInstall(str_contains($stored,'[goldensite_form id="') && !str_contains($stored,'csrf_token'),'Se guarda un token de sesión dentro de la portada.');
+checkInstall(str_contains(installRequest('/')['body'],'/forms/studio-contact'),'No se renderiza el formulario mediante el módulo existente.');
+$db->prepare('INSERT INTO goldensite_access_roles (name,permissions_json) VALUES (?,?)')->execute(['Studio fixture role','["builder.read","builder.write"]']);$roleId=(int)$db->lastInsertId();
+$db->prepare("INSERT INTO users (username,email,password,role,role_id,status) VALUES (?,?,?,'user',2,'active')")->execute(['studio_fixture','studio@example.test',password_hash($password,PASSWORD_DEFAULT)]);$limitedId=(int)$db->lastInsertId();
+$db->prepare('INSERT INTO goldensite_access_members (user_id,role_id) VALUES (?,?)')->execute([$limitedId,$roleId]);
+$adminCookie=$cookie;$cookie=$fixture.'/storage/studio-delegate.cookie';
+try {
+    checkInstall(installRequest('/login',['csrf_token'=>installCsrf(installRequest('/login')),'email'=>'studio@example.test','password'=>$password])['status']===302,'No se pudo iniciar la sesión del editor.');
+    $limited=installRequest('/admin/ai-builder');
+    checkInstall($limited['status']===200 && !str_contains($limited['body'],'value="publish_guided"'),'El editor recibe el control reservado de publicación.');
+    checkInstall(installRequest('/admin/ai-builder',studioForm(array_merge($guided,['current_password'=>$password])))['status']===403,'El editor publica sin ser administrador completo.');
+    $db->prepare('UPDATE goldensite_access_roles SET permissions_json=? WHERE id=?')->execute(['["builder.read"]',$roleId]);
+    checkInstall(installRequest('/admin/ai-builder',studioForm(array_merge($guided,['action'=>'save_guided'])))['status']===403,'La cuenta de solo lectura escribe el borrador.');
+} finally {
+    $cookie=$adminCookie;$db->prepare('DELETE FROM goldensite_access_members WHERE user_id=?')->execute([$limitedId]);$db->prepare('DELETE FROM goldensite_access_roles WHERE id=?')->execute([$roleId]);$db->prepare('DELETE FROM users WHERE id=?')->execute([$limitedId]);
+}
+echo "OK: $checks comprobaciones de instalación, recuperación y estudio guiado.\n";

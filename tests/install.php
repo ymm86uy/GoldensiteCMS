@@ -170,6 +170,10 @@ try {
         else $db->prepare("UPDATE goldensite_module_offers SET tier=? WHERE module_id='release-backup'")->execute([$previousTier]);
         installRequest('/logout',['csrf_token'=>$token]);
     }
+    if (getenv('GOLDENSITE_TEST_GUIDED_STUDIO')==='1') {
+        require __DIR__.'/studio-guided.php';
+        return;
+    }
     if (getenv('GOLDENSITE_TEST_CSP_REPORTS')==='1') {
         require __DIR__.'/csp-reports.php';
         return;
